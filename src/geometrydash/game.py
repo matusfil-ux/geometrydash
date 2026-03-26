@@ -346,17 +346,21 @@ def run_game() -> None:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state in {"shop", "editor"}:
                 game_state = "menu"
 
-            if event.type == pygame.KEYDOWN and game_state == "shop":
-                if event.key == pygame.K_RIGHT:
-                    selected_icon = (selected_icon + 1) % len(ICON_COLORS)
+            if event.type == pygame.KEYDOWN and game_state == "level_select":
                 if event.key == pygame.K_LEFT:
-                    selected_icon = (selected_icon - 1) % len(ICON_COLORS)
-                if event.key == pygame.K_u:
-                    if selected_icon not in unlocked_icons and coins >= UNLOCK_COST:
-                        unlocked_icons.add(selected_icon)
-                        coins -= UNLOCK_COST
-                if event.key == pygame.K_RETURN or event.key == pygame.K_p:
-                    game_state = "menu"
+                    selected_level = (selected_level - 1) % len(LEVELS)
+                if event.key == pygame.K_RIGHT:
+                    selected_level = (selected_level + 1) % len(LEVELS)
+                if event.key == pygame.K_RETURN:
+                    game_state = "playing"
+                    started = True
+                    player.reset()
+                    obstacles = []
+                    score = 0
+                    current_level = selected_level
+                    frames_until_next = LEVELS[current_level]["min_gap"]
+                    current_level = selected_level
+                    frames_until_next = LEVELS[current_level]["min_gap"]
 
             if event.type == pygame.KEYDOWN and game_state == "editor":
                 if event.key == pygame.K_RIGHT:
