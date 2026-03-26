@@ -274,6 +274,7 @@ def run_game() -> None:
     background = Background()
     obstacles: list[Obstacle] = []
     score = 0
+    coins = 0
     high_score = 0
     current_level = 0
     frames_until_next = LEVELS[current_level]["min_gap"]
@@ -336,9 +337,9 @@ def run_game() -> None:
                 if event.key == pygame.K_LEFT:
                     selected_icon = (selected_icon - 1) % len(ICON_COLORS)
                 if event.key == pygame.K_u:
-                    if selected_icon not in unlocked_icons and score >= UNLOCK_COST:
+                    if selected_icon not in unlocked_icons and coins >= UNLOCK_COST:
                         unlocked_icons.add(selected_icon)
-                        score -= UNLOCK_COST
+                        coins -= UNLOCK_COST
                 if event.key == pygame.K_RETURN or event.key == pygame.K_p:
                     game_state = "menu"
 
@@ -387,6 +388,7 @@ def run_game() -> None:
                 if not obs.passed and obs.x + obs.width < player.x:
                     obs.passed = True
                     score += 1
+                    coins += 1
                     if score >= level["score_to_next"] and current_level + 1 < len(LEVELS):
                         current_level += 1
 
@@ -420,10 +422,11 @@ def run_game() -> None:
             draw_text(screen, "Press M to toggle mode", 22, WINDOW_WIDTH // 2, 260, (180, 180, 180), center=True)
             draw_text(screen, f"Current level: {LEVELS[current_level]['name']}", 24, WINDOW_WIDTH // 2, 300, SCORE_COLOR, center=True)
             draw_text(screen, f"Mode: {mode.upper()}", 20, WINDOW_WIDTH // 2, 340, (180, 180, 180), center=True)
+            draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 370, (180, 255, 180), center=True)
 
         elif game_state == "shop":
             draw_text(screen, "SHOP", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
-            draw_text(screen, f"Score: {score}", 32, WINDOW_WIDTH - 190, 20, SCORE_COLOR)
+            draw_text(screen, f"Coins: {coins}", 32, WINDOW_WIDTH - 190, 20, SCORE_COLOR)
             draw_text(screen, "Use LEFT/RIGHT to select icon, U to unlock, ESC to menu", 20, WINDOW_WIDTH // 2, 110, WHITE, center=True)
 
             icon_y = 180
@@ -433,7 +436,7 @@ def run_game() -> None:
                 if i == selected_icon:
                     pygame.draw.rect(screen, WHITE, (x - 6, icon_y - 6, 92, 92), 3, border_radius=14)
 
-                status = "OWNED" if i in unlocked_icons else f"{UNLOCK_COST} SCORE"
+                status = "OWNED" if i in unlocked_icons else f"{UNLOCK_COST} COINS"
                 status_color = SCORE_COLOR if i in unlocked_icons else (255, 180, 180)
                 draw_text(screen, status, 16, x + 40, icon_y + 92, status_color, center=True)
 
@@ -442,13 +445,14 @@ def run_game() -> None:
             if selected_icon in unlocked_icons:
                 draw_text(screen, "Press P or ENTER to return to menu and play", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
             else:
-                draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} score", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
+                draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} coins", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
 
         else:
             draw_text(screen, f"Score: {score}", 28, 16, 16, SCORE_COLOR)
-            draw_text(screen, f"Best:  {high_score}", 20, 16, 50, (180, 180, 100))
-            draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 80, (180, 180, 180))
-            draw_text(screen, f"Level: {LEVELS[current_level]['name']}", 20, 16, 110, (200, 200, 255))
+            draw_text(screen, f"Coins: {coins}", 20, 16, 50, (180, 255, 180))
+            draw_text(screen, f"Best:  {high_score}", 20, 16, 80, (180, 180, 100))
+            draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 110, (180, 180, 180))
+            draw_text(screen, f"Level: {LEVELS[current_level]['name']}", 20, 16, 140, (200, 200, 255))
 
             if game_state == "gameover":
                 draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
