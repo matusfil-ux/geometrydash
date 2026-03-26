@@ -17,6 +17,7 @@ How to improve (ideas for you!):
   - Add sound effects with pygame.mixer
 """
 
+import math
 import random
 import sys
 
@@ -55,6 +56,12 @@ OBSTACLE_HEIGHT = 50
 OBSTACLE_SPEED = 6                    # pixels per frame (increase for harder game)
 OBSTACLE_MIN_GAP = 60                 # minimum frames between obstacles
 OBSTACLE_MAX_GAP = 120                # maximum frames between obstacles
+
+# Game mode settings
+GAME_MODES = ("classic", "wave")
+HARDER_SPIKE_CHANCE = 0.35            # chance to create a second nearby spike
+WAVE_OBSTACLE_AMPLITUDE = 80         # vertical movement amplitude for wave mode
+WAVE_OBSTACLE_FREQUENCY = 0.02       # speed of vertical oscillation
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -133,10 +140,11 @@ class Obstacle:
         self.width = OBSTACLE_WIDTH
         self.height = OBSTACLE_HEIGHT
         self.passed = False
+        self.speed = OBSTACLE_SPEED
 
     def update(self) -> None:
         """Move the obstacle to the left."""
-        self.x -= OBSTACLE_SPEED
+        self.x -= self.speed
 
     def is_offscreen(self) -> bool:
         """True if the obstacle has scrolled past the left edge."""
@@ -159,6 +167,35 @@ class Obstacle:
         bottom_right = (self.x + self.width, self.base_y)
         pygame.draw.polygon(screen, OBSTACLE_COLOR, [tip, bottom_left, bottom_right])
         pygame.draw.polygon(screen, BLACK, [tip, bottom_left, bottom_right], 2)
+
+
+class WaveObstacle(Obstacle):
+    """Dynamic wave spike for wave mode."""
+
+    def __init__(self, x: int, phase: float) -> None:
+        super().__init__(x)
+        self.phase = phase
+
+    def update(self) -> None:
+        self.x -= OBSTACLE_SPEED
+        self.phase += WAVE_OBSTACLE_FREQUENCY
+        self.base_y = GROUND_Y - int(WAVE_OBSTACLE_AMPLITUDE * (0.5 + 0.5 * math.sin(self.phase)))
+
+    def draw(self, screen: pygame.Surface) -> None:
+        tip = (self.x + self.width // 2, self.base_y - self.height)
+        bottom_left = (self.x, self.base_y)
+        bottom_right = (self.x + self.width, self.base_y)
+        pygame.draw.polygon(screen, (170, 220, 255), [tip, bottom_left, bottom_right])
+        pygame.draw.polygon(screen, BLACK, [tip, bottom_left, bottom_right], 2)
+
+    def get_rect(self) -> pygame.Rect:
+        margin_x = 4
+        return pygame.Rect(
+            self.x + margin_x,
+            self.base_y - int(self.height * 0.6),
+            self.width - margin_x * 2,
+            int(self.height * 0.6),
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -222,6 +259,7 @@ def run_game() -> None:
     frames_until_next = OBSTACLE_MIN_GAP
     game_over = False
     started = False
+    mode = "classic"  # toggle between classic and wave mode
 
     def reset() -> None:
         nonlocal obstacles, score, frames_until_next, game_over, started
@@ -238,6 +276,9 @@ def run_game() -> None:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
+                mode = "wave" if mode == "classic" else "classic"
 
             jump = (
                 (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
@@ -257,8 +298,20 @@ def run_game() -> None:
 
             frames_until_next -= 1
             if frames_until_next <= 0:
-                obstacles.append(Obstacle(WINDOW_WIDTH + 10))
-                frames_until_next = random.randint(OBSTACLE_MIN_GAP, OBSTACLE_MAX_GAP)
+                if mode == "classic":
+                    obstacles.append(Obstacle(WINDOW_WIDTH + 10))
+                    if random.random() < HARDER_SPIKE_CHANCE:
+                        obstacles.append(Obstacle(WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10))
+                    frames_until_next = random.randint(OBSTACLE_MIN_GAP, OBSTACLE_MAX_GAP)
+                else:
+                    wave_obs = WaveObstacle(WINDOW_WIDTH + 10, random.random() * 2 * math.pi)
+                    wave_obs.speed = OBSTACLE_SPEED + 2
+                    obstacles.append(wave_obs)
+                    if random.random() < HARDER_SPIKE_CHANCE:
+                        extra = WaveObstacle(WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10, random.random() * 2 * math.pi)
+                        extra.speed = OBSTACLE_SPEED + 2
+                        obstacles.append(extra)
+                    frames_until_next = random.randint(OBSTACLE_MIN_GAP // 2, max(1, OBSTACLE_MAX_GAP // 2))
 
             for obs in obstacles:
                 obs.update()
@@ -286,6 +339,7 @@ def run_game() -> None:
 
         draw_text(screen, f"Score: {score}", 28, 16, 16, SCORE_COLOR)
         draw_text(screen, f"Best:  {high_score}", 20, 16, 50, (180, 180, 100))
+        draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 80, (180, 180, 180))
 
         if not started and not game_over:
             draw_text(screen, "GEOMETRY DASH", 48, WINDOW_WIDTH // 2, 140, PLAYER_COLOR, center=True)
