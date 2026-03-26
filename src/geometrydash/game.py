@@ -22,6 +22,7 @@ import random
 import sys
 
 import pygame
+import numpy as np
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -264,6 +265,27 @@ def draw_text(
     screen.blit(surface, rect)
 
 
+def generate_death_sound() -> pygame.mixer.Sound:
+    """Generate a simple descending death sound."""
+    sample_rate = 22050
+    duration = 0.5  # seconds
+    frequency_start = 800  # Hz
+    frequency_end = 200  # Hz
+    samples = int(sample_rate * duration)
+    
+    sound_array = np.zeros(samples, dtype=np.int16)
+    for i in range(samples):
+        # Descending frequency over time
+        t = i / sample_rate
+        freq = frequency_start - (frequency_start - frequency_end) * (t / duration)
+        # Generate sine wave with fade out
+        amplitude = 32767 * (1 - t / duration)
+        sound_array[i] = int(amplitude * np.sin(2 * np.pi * freq * t))
+    
+    sound = pygame.mixer.Sound(buffer=sound_array.tobytes())
+    return sound
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN GAME LOOP
 # ─────────────────────────────────────────────────────────────────────────────
@@ -271,9 +293,12 @@ def draw_text(
 def run_game() -> None:
     """Launch and run the Geometry Dash game."""
     pygame.init()
+    pygame.mixer.init()
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Geometry Dash")
     clock = pygame.time.Clock()
+    
+    death_sound = generate_death_sound()
 
     player = Player()
     background = Background()
@@ -286,7 +311,7 @@ def run_game() -> None:
     frames_until_next = LEVELS[current_level]["min_gap"]
     game_over = False
     started = False
-    game_state = "menu"  # menu, level_select, playing, shop, editor, gameover
+    game_state = "menu"  # menu, level_select, playing, shop, editor, profile, level_complete, gameover
     mode = "classic"  # toggle between classic and wave mode
     selected_icon = 0
     unlocked_icons = {0}
@@ -296,6 +321,9 @@ def run_game() -> None:
     custom_events: list[dict[str, int|str]] = []
     custom_timer = 0
     current_speed = OBSTACLE_SPEED
+    player_name = "Player"
+    stars = 0
+    beaten_levels = set()
 
     def reset() -> None:
         nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed
@@ -443,6 +471,7 @@ def run_game() -> None:
                 if not custom_events and not obstacles:
                     game_over = True
                     game_state = "gameover"
+                    death_sound.play()
                     if score > high_score:
                         high_score = score
 
@@ -482,6 +511,7 @@ def run_game() -> None:
                 if player.get_rect().colliderect(obs.get_rect()):
                     game_over = True
                     game_state = "gameover"
+                    death_sound.play()
                     if score > high_score:
                         high_score = score
 
