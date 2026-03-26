@@ -75,10 +75,9 @@ UNLOCK_COST = 100
 
 # Level settings
 LEVELS = [
-    {"name": "Easy", "speed": 5, "min_gap": 80, "max_gap": 140, "score_to_next": 10},
-    {"name": "Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 20},
-    {"name": "Hard", "speed": 9, "min_gap": 55, "max_gap": 100, "score_to_next": 30},
-    {"name": "Insane", "speed": 11, "min_gap": 45, "max_gap": 90, "score_to_next": 9999},
+    {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "score_to_next": 9999},
+    {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999},
+    {"name": "Level 3 - Hard", "speed": 10, "min_gap": 50, "max_gap": 90, "score_to_next": 9999},
 ]
 
 # Editor settings
@@ -283,10 +282,11 @@ def run_game() -> None:
     coins = 0
     high_score = 0
     current_level = 0
+    selected_level = 0
     frames_until_next = LEVELS[current_level]["min_gap"]
     game_over = False
     started = False
-    game_state = "menu"  # menu, playing, shop, editor, gameover
+    game_state = "menu"  # menu, level_select, playing, shop, editor, gameover
     mode = "classic"  # toggle between classic and wave mode
     selected_icon = 0
     unlocked_icons = {0}
@@ -322,24 +322,19 @@ def run_game() -> None:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
                 mode = "wave" if mode == "classic" else "classic"
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and game_state == "menu":
-                game_state = "playing"
-                started = True
-                player.reset()
-                obstacles = []
-                score = 0
-                current_level = 0
-                frames_until_next = LEVELS[current_level]["min_gap"]
+            if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_p) and game_state == "menu":
+                game_state = "level_select"
+                selected_level = 0
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_p and game_state == "menu":
-                # Play from menu via P
-                game_state = "playing"
-                started = True
-                player.reset()
-                obstacles = []
-                score = 0
-                current_level = 0
-                frames_until_next = LEVELS[current_level]["min_gap"]
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_s and game_state == "menu":
+                game_state = "shop"
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_e and game_state == "menu":
+                game_state = "editor"
+                editor_cursor = [EDITOR_GRID_X[0], EDITOR_GRID_Y[0]]
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state in {"shop", "editor", "level_select"}:
+                game_state = "menu"
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_s and game_state == "menu":
                 game_state = "shop"
@@ -387,14 +382,14 @@ def run_game() -> None:
                     editor_objects = [obj for obj in editor_objects if not (obj["spawn_time"] == int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL) and abs(obj.get("y", GROUND_Y) - editor_cursor[1]) <= 10)]
                 if event.key == pygame.K_r:
                     game_state = "menu"
-                if event.key == pygame.K_p or (event.key == pygame.K_RETURN):
+                if event.key == pygame.K_p or event.key == pygame.K_RETURN:
                     if editor_objects:
                         game_state = "playing"
                         started = True
                         player.reset()
                         obstacles = []
                         score = 0
-                        current_level = 0
+                        current_level = selected_level
                         frames_until_next = LEVELS[current_level]["min_gap"]
                         custom_mode = True
                         custom_timer = 0
@@ -505,12 +500,19 @@ def run_game() -> None:
 
         if game_state == "menu":
             draw_text(screen, "GEOMETRY DASH", 60, WINDOW_WIDTH // 2, 100, PLAYER_COLOR, center=True)
-            draw_text(screen, "Press ENTER or P to Play", 32, WINDOW_WIDTH // 2, 180, WHITE, center=True)
-            draw_text(screen, "Press S for Shop", 26, WINDOW_WIDTH // 2, 220, WHITE, center=True)
-            draw_text(screen, "Press M to toggle mode", 22, WINDOW_WIDTH // 2, 260, (180, 180, 180), center=True)
-            draw_text(screen, f"Current level: {LEVELS[current_level]['name']}", 24, WINDOW_WIDTH // 2, 300, SCORE_COLOR, center=True)
-            draw_text(screen, f"Mode: {mode.upper()}", 20, WINDOW_WIDTH // 2, 340, (180, 180, 180), center=True)
-            draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 370, (180, 255, 180), center=True)
+            draw_text(screen, "Press ENTER or P to Choose Level", 32, WINDOW_WIDTH // 2, 170, WHITE, center=True)
+            draw_text(screen, "Press S for Shop, E for Editor", 26, WINDOW_WIDTH // 2, 210, WHITE, center=True)
+            draw_text(screen, "Press M to toggle mode", 22, WINDOW_WIDTH // 2, 250, (180, 180, 180), center=True)
+            draw_text(screen, f"Selected Level: {LEVELS[selected_level]['name']}", 24, WINDOW_WIDTH // 2, 290, SCORE_COLOR, center=True)
+            draw_text(screen, f"Mode: {mode.upper()}", 20, WINDOW_WIDTH // 2, 330, (180, 180, 180), center=True)
+            draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 360, (180, 255, 180), center=True)
+
+        elif game_state == "level_select":
+            draw_text(screen, "SELECT LEVEL", 56, WINDOW_WIDTH // 2, 80, SCORE_COLOR, center=True)
+            for idx, lvl in enumerate(LEVELS):
+                color = SCORE_COLOR if idx == selected_level else (180, 180, 180)
+                draw_text(screen, f"{idx+1} - {lvl['name']}", 40, WINDOW_WIDTH // 2, 160 + idx*50, color, center=True)
+            draw_text(screen, "Use LEFT/RIGHT to choose, ENTER to play, ESC to menu", 20, WINDOW_WIDTH // 2, 320, WHITE, center=True)
 
         elif game_state == "shop":
             draw_text(screen, "SHOP", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
@@ -527,6 +529,13 @@ def run_game() -> None:
                 status = "OWNED" if i in unlocked_icons else f"{UNLOCK_COST} COINS"
                 status_color = SCORE_COLOR if i in unlocked_icons else (255, 180, 180)
                 draw_text(screen, status, 16, x + 40, icon_y + 92, status_color, center=True)
+
+            sel_text = "Selected: {}".format("Owned" if selected_icon in unlocked_icons else "Locked")
+            draw_text(screen, sel_text, 22, WINDOW_WIDTH // 2, 280, WHITE, center=True)
+            if selected_icon in unlocked_icons:
+                draw_text(screen, "Press P or ENTER to return to menu and play", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
+            else:
+                draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} coins", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
 
             sel_text = "Selected: {}".format("Owned" if selected_icon in unlocked_icons else "Locked")
             draw_text(screen, sel_text, 22, WINDOW_WIDTH // 2, 280, WHITE, center=True)
