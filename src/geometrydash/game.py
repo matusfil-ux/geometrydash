@@ -63,6 +63,24 @@ HARDER_SPIKE_CHANCE = 0.35            # chance to create a second nearby spike
 WAVE_OBSTACLE_AMPLITUDE = 80         # vertical movement amplitude for wave mode
 WAVE_OBSTACLE_FREQUENCY = 0.02       # speed of vertical oscillation
 
+# shop settings
+ICON_COLORS = [
+    (0, 200, 255),   # default cyan
+    (255, 100, 100), # red
+    (100, 255, 100), # green
+    (255, 255, 100), # yellow
+    (255, 0, 255),   # magenta
+]
+UNLOCK_COST = 100
+
+# Level settings
+LEVELS = [
+    {"name": "Easy", "speed": 5, "min_gap": 80, "max_gap": 140, "score_to_next": 10},
+    {"name": "Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 20},
+    {"name": "Hard", "speed": 9, "min_gap": 55, "max_gap": 100, "score_to_next": 30},
+    {"name": "Insane", "speed": 11, "min_gap": 45, "max_gap": 90, "score_to_next": 9999},
+]
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PLAYER
@@ -77,6 +95,7 @@ class Player:
         self.velocity_y = 0.0
         self.on_ground = True
         self.angle = 0.0
+        self.color = PLAYER_COLOR
 
     def reset(self) -> None:
         """Put the player back at the starting position."""
@@ -119,7 +138,7 @@ class Player:
     def draw(self, screen: pygame.Surface) -> None:
         """Draw the spinning cube on screen."""
         cube_surf = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE), pygame.SRCALPHA)
-        pygame.draw.rect(cube_surf, PLAYER_COLOR, (0, 0, PLAYER_SIZE, PLAYER_SIZE), border_radius=4)
+        pygame.draw.rect(cube_surf, self.color, (0, 0, PLAYER_SIZE, PLAYER_SIZE), border_radius=4)
         pygame.draw.line(cube_surf, WHITE, (PLAYER_SIZE // 2, 4), (PLAYER_SIZE // 2, PLAYER_SIZE - 4), 2)
         pygame.draw.line(cube_surf, WHITE, (4, PLAYER_SIZE // 2), (PLAYER_SIZE - 4, PLAYER_SIZE // 2), 2)
         rotated = pygame.transform.rotate(cube_surf, self.angle)
@@ -256,19 +275,25 @@ def run_game() -> None:
     obstacles: list[Obstacle] = []
     score = 0
     high_score = 0
-    frames_until_next = OBSTACLE_MIN_GAP
+    current_level = 0
+    frames_until_next = LEVELS[current_level]["min_gap"]
     game_over = False
     started = False
+    game_state = "menu"  # menu, playing, shop, gameover
     mode = "classic"  # toggle between classic and wave mode
+    selected_icon = 0
+    unlocked_icons = {0}
 
     def reset() -> None:
-        nonlocal obstacles, score, frames_until_next, game_over, started
+        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state
         player.reset()
         obstacles = []
         score = 0
-        frames_until_next = OBSTACLE_MIN_GAP
+        current_level = 0
+        frames_until_next = LEVELS[current_level]["min_gap"]
         game_over = False
         started = False
+        game_state = "menu"
 
     while True:
         # ── Events ────────────────────────────────────────────────────────────
@@ -280,50 +305,101 @@ def run_game() -> None:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
                 mode = "wave" if mode == "classic" else "classic"
 
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and game_state == "menu":
+                game_state = "playing"
+                started = True
+                player.reset()
+                obstacles = []
+                score = 0
+                current_level = 0
+                frames_until_next = LEVELS[current_level]["min_gap"]
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_p and game_state == "menu":
+                # Play from menu via P
+                game_state = "playing"
+                started = True
+                player.reset()
+                obstacles = []
+                score = 0
+                current_level = 0
+                frames_until_next = LEVELS[current_level]["min_gap"]
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_s and game_state == "menu":
+                game_state = "shop"
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state == "shop":
+                game_state = "menu"
+
+            if event.type == pygame.KEYDOWN and game_state == "shop":
+                if event.key == pygame.K_RIGHT:
+                    selected_icon = (selected_icon + 1) % len(ICON_COLORS)
+                if event.key == pygame.K_LEFT:
+                    selected_icon = (selected_icon - 1) % len(ICON_COLORS)
+                if event.key == pygame.K_u:
+                    if selected_icon not in unlocked_icons and score >= UNLOCK_COST:
+                        unlocked_icons.add(selected_icon)
+                        score -= UNLOCK_COST
+                if event.key == pygame.K_RETURN or event.key == pygame.K_p:
+                    game_state = "menu"
+
             jump = (
                 (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
                 or event.type == pygame.MOUSEBUTTONDOWN
             )
-            if jump:
-                if game_over:
-                    reset()
-                else:
-                    started = True
-                    player.jump()
+            if jump and game_state == "playing":
+                started = True
+                player.jump()
+
+            if jump and game_state == "gameover":
+                game_state = "menu"
+                reset()
 
         # ── Update ────────────────────────────────────────────────────────────
-        if started and not game_over:
+        if started and not game_over and game_state == "playing":
             player.update()
             background.update()
 
+            level = LEVELS[current_level]
+            OBSTACLE_SPEED = level["speed"]  # type: ignore[assignment]
             frames_until_next -= 1
             if frames_until_next <= 0:
-                if mode == "classic":
-                    obstacles.append(Obstacle(WINDOW_WIDTH + 10))
-                    if random.random() < HARDER_SPIKE_CHANCE:
-                        obstacles.append(Obstacle(WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10))
-                    frames_until_next = random.randint(OBSTACLE_MIN_GAP, OBSTACLE_MAX_GAP)
-                else:
-                    wave_obs = WaveObstacle(WINDOW_WIDTH + 10, random.random() * 2 * math.pi)
-                    wave_obs.speed = OBSTACLE_SPEED + 2
-                    obstacles.append(wave_obs)
-                    if random.random() < HARDER_SPIKE_CHANCE:
-                        extra = WaveObstacle(WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10, random.random() * 2 * math.pi)
-                        extra.speed = OBSTACLE_SPEED + 2
-                        obstacles.append(extra)
-                    frames_until_next = random.randint(OBSTACLE_MIN_GAP // 2, max(1, OBSTACLE_MAX_GAP // 2))
+                def make_obs() -> Obstacle:
+                    if mode == "wave":
+                        wave_obs = WaveObstacle(WINDOW_WIDTH + 10, random.random() * 2 * math.pi)
+                        wave_obs.speed = level["speed"]
+                        return wave_obs
+                    base = Obstacle(WINDOW_WIDTH + 10)
+                    base.speed = level["speed"]
+                    return base
+
+                first = make_obs()
+                obstacles.append(first)
+
+                if random.random() < HARDER_SPIKE_CHANCE:
+                    extra = make_obs()
+                    extra.x = WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10
+                    obstacles.append(extra)
+
+                frames_until_next = random.randint(level["min_gap"], level["max_gap"])
 
             for obs in obstacles:
                 obs.update()
                 if not obs.passed and obs.x + obs.width < player.x:
                     obs.passed = True
                     score += 1
+                    if score >= level["score_to_next"] and current_level + 1 < len(LEVELS):
+                        current_level += 1
+
                 if player.get_rect().colliderect(obs.get_rect()):
                     game_over = True
+                    game_state = "gameover"
                     if score > high_score:
                         high_score = score
 
             obstacles = [o for o in obstacles if not o.is_offscreen()]
+
+        # Ensure selected player's cube color is applied
+        player.color = ICON_COLORS[selected_icon]
 
         # ── Draw ──────────────────────────────────────────────────────────────
         screen.fill(BACKGROUND_COLOR)
@@ -337,19 +413,47 @@ def run_game() -> None:
 
         player.draw(screen)
 
-        draw_text(screen, f"Score: {score}", 28, 16, 16, SCORE_COLOR)
-        draw_text(screen, f"Best:  {high_score}", 20, 16, 50, (180, 180, 100))
-        draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 80, (180, 180, 180))
+        if game_state == "menu":
+            draw_text(screen, "GEOMETRY DASH", 60, WINDOW_WIDTH // 2, 100, PLAYER_COLOR, center=True)
+            draw_text(screen, "Press ENTER or P to Play", 32, WINDOW_WIDTH // 2, 180, WHITE, center=True)
+            draw_text(screen, "Press S for Shop", 26, WINDOW_WIDTH // 2, 220, WHITE, center=True)
+            draw_text(screen, "Press M to toggle mode", 22, WINDOW_WIDTH // 2, 260, (180, 180, 180), center=True)
+            draw_text(screen, f"Current level: {LEVELS[current_level]['name']}", 24, WINDOW_WIDTH // 2, 300, SCORE_COLOR, center=True)
+            draw_text(screen, f"Mode: {mode.upper()}", 20, WINDOW_WIDTH // 2, 340, (180, 180, 180), center=True)
 
-        if not started and not game_over:
-            draw_text(screen, "GEOMETRY DASH", 48, WINDOW_WIDTH // 2, 140, PLAYER_COLOR, center=True)
-            draw_text(screen, "Press SPACE or click to start", 26, WINDOW_WIDTH // 2, 210, WHITE, center=True)
-            draw_text(screen, "Jump over the red spikes!", 22, WINDOW_WIDTH // 2, 250, (180, 180, 180), center=True)
+        elif game_state == "shop":
+            draw_text(screen, "SHOP", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
+            draw_text(screen, f"Score: {score}", 32, WINDOW_WIDTH - 190, 20, SCORE_COLOR)
+            draw_text(screen, "Use LEFT/RIGHT to select icon, U to unlock, ESC to menu", 20, WINDOW_WIDTH // 2, 110, WHITE, center=True)
 
-        if game_over:
-            draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
-            draw_text(screen, f"Score: {score}   Best: {high_score}", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
-            draw_text(screen, "Press SPACE or click to restart", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
+            icon_y = 180
+            for i, col in enumerate(ICON_COLORS):
+                x = 120 + i * 120
+                pygame.draw.rect(screen, col, (x, icon_y, 80, 80), border_radius=10)
+                if i == selected_icon:
+                    pygame.draw.rect(screen, WHITE, (x - 6, icon_y - 6, 92, 92), 3, border_radius=14)
+
+                status = "OWNED" if i in unlocked_icons else f"{UNLOCK_COST} SCORE"
+                status_color = SCORE_COLOR if i in unlocked_icons else (255, 180, 180)
+                draw_text(screen, status, 16, x + 40, icon_y + 92, status_color, center=True)
+
+            sel_text = "Selected: {}".format("Owned" if selected_icon in unlocked_icons else "Locked")
+            draw_text(screen, sel_text, 22, WINDOW_WIDTH // 2, 280, WHITE, center=True)
+            if selected_icon in unlocked_icons:
+                draw_text(screen, "Press P or ENTER to return to menu and play", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
+            else:
+                draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} score", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
+
+        else:
+            draw_text(screen, f"Score: {score}", 28, 16, 16, SCORE_COLOR)
+            draw_text(screen, f"Best:  {high_score}", 20, 16, 50, (180, 180, 100))
+            draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 80, (180, 180, 180))
+            draw_text(screen, f"Level: {LEVELS[current_level]['name']}", 20, 16, 110, (200, 200, 255))
+
+            if game_state == "gameover":
+                draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
+                draw_text(screen, f"Score: {score}   Best: {high_score}", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
+                draw_text(screen, "Press SPACE or click to return to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
 
         pygame.display.flip()
         clock.tick(FPS)
