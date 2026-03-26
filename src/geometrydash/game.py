@@ -81,6 +81,12 @@ LEVELS = [
     {"name": "Insane", "speed": 11, "min_gap": 45, "max_gap": 90, "score_to_next": 9999},
 ]
 
+# Editor settings
+EDITOR_GRID_X = (100, WINDOW_WIDTH - 100)
+EDITOR_GRID_Y = (GROUND_Y - 220, GROUND_Y - 40)
+EDITOR_CELL_SIZE = 20
+EDITOR_FRAMES_PER_PIXEL = 2
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PLAYER
@@ -153,11 +159,11 @@ class Player:
 class Obstacle:
     """A spike that scrolls from right to left."""
 
-    def __init__(self, x: int) -> None:
+    def __init__(self, x: int, base_y: int = GROUND_Y, width: int = OBSTACLE_WIDTH, height: int = OBSTACLE_HEIGHT) -> None:
         self.x = x
-        self.base_y = GROUND_Y
-        self.width = OBSTACLE_WIDTH
-        self.height = OBSTACLE_HEIGHT
+        self.base_y = base_y
+        self.width = width
+        self.height = height
         self.passed = False
         self.speed = OBSTACLE_SPEED
 
@@ -280,13 +286,19 @@ def run_game() -> None:
     frames_until_next = LEVELS[current_level]["min_gap"]
     game_over = False
     started = False
-    game_state = "menu"  # menu, playing, shop, gameover
+    game_state = "menu"  # menu, playing, shop, editor, gameover
     mode = "classic"  # toggle between classic and wave mode
     selected_icon = 0
     unlocked_icons = {0}
+    editor_objects: list[dict[str, int|str]] = []
+    editor_cursor = [EDITOR_GRID_X[0], EDITOR_GRID_Y[0]]
+    custom_mode = False
+    custom_events: list[dict[str, int|str]] = []
+    custom_timer = 0
+    current_speed = OBSTACLE_SPEED
 
     def reset() -> None:
-        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state
+        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed
         player.reset()
         obstacles = []
         score = 0
@@ -295,6 +307,10 @@ def run_game() -> None:
         game_over = False
         started = False
         game_state = "menu"
+        custom_mode = False
+        custom_events = []
+        custom_timer = 0
+        current_speed = OBSTACLE_SPEED
 
     while True:
         # ── Events ────────────────────────────────────────────────────────────
@@ -328,7 +344,11 @@ def run_game() -> None:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_s and game_state == "menu":
                 game_state = "shop"
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state == "shop":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_e and game_state == "menu":
+                game_state = "editor"
+                editor_cursor = [EDITOR_GRID_X[0], EDITOR_GRID_Y[0]]
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state in {"shop", "editor"}:
                 game_state = "menu"
 
             if event.type == pygame.KEYDOWN and game_state == "shop":
@@ -342,6 +362,44 @@ def run_game() -> None:
                         coins -= UNLOCK_COST
                 if event.key == pygame.K_RETURN or event.key == pygame.K_p:
                     game_state = "menu"
+
+            if event.type == pygame.KEYDOWN and game_state == "editor":
+                if event.key == pygame.K_RIGHT:
+                    editor_cursor[0] = min(EDITOR_GRID_X[1], editor_cursor[0] + EDITOR_CELL_SIZE)
+                if event.key == pygame.K_LEFT:
+                    editor_cursor[0] = max(EDITOR_GRID_X[0], editor_cursor[0] - EDITOR_CELL_SIZE)
+                if event.key == pygame.K_UP:
+                    editor_cursor[1] = max(EDITOR_GRID_Y[0], editor_cursor[1] - EDITOR_CELL_SIZE)
+                if event.key == pygame.K_DOWN:
+                    editor_cursor[1] = min(EDITOR_GRID_Y[1], editor_cursor[1] + EDITOR_CELL_SIZE)
+
+                if event.key == pygame.K_1:
+                    # spike event: spawn at time based on x position
+                    spawn_time = int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL)
+                    editor_objects.append({"type": "spike", "spawn_time": spawn_time, "y": editor_cursor[1]})
+                if event.key == pygame.K_2:
+                    spawn_time = int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL)
+                    editor_objects.append({"type": "block", "spawn_time": spawn_time, "y": editor_cursor[1]})
+                if event.key == pygame.K_3:
+                    spawn_time = int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL)
+                    editor_objects.append({"type": "speed", "spawn_time": spawn_time, "speed": max(3, current_speed + 2)})
+                if event.key == pygame.K_d:
+                    editor_objects = [obj for obj in editor_objects if not (obj["spawn_time"] == int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL) and abs(obj.get("y", GROUND_Y) - editor_cursor[1]) <= 10)]
+                if event.key == pygame.K_r:
+                    game_state = "menu"
+                if event.key == pygame.K_p or (event.key == pygame.K_RETURN):
+                    if editor_objects:
+                        game_state = "playing"
+                        started = True
+                        player.reset()
+                        obstacles = []
+                        score = 0
+                        current_level = 0
+                        frames_until_next = LEVELS[current_level]["min_gap"]
+                        custom_mode = True
+                        custom_timer = 0
+                        custom_events = sorted(editor_objects, key=lambda o: o["spawn_time"])
+                        current_speed = OBSTACLE_SPEED
 
             jump = (
                 (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
@@ -360,28 +418,58 @@ def run_game() -> None:
             player.update()
             background.update()
 
-            level = LEVELS[current_level]
-            OBSTACLE_SPEED = level["speed"]  # type: ignore[assignment]
-            frames_until_next -= 1
-            if frames_until_next <= 0:
-                def make_obs() -> Obstacle:
+            if custom_mode:
+                custom_timer += 1
+                while custom_events and custom_events[0]["spawn_time"] <= custom_timer:
+                    event_obj = custom_events.pop(0)
+                    if event_obj["type"] == "speed":
+                        current_speed = event_obj.get("speed", current_speed)
+                        continue
+
+                    if event_obj["type"] == "spike":
+                        obs = Obstacle(WINDOW_WIDTH + 10, base_y=event_obj.get("y", GROUND_Y))
+                    else:
+                        obs = Obstacle(WINDOW_WIDTH + 10, base_y=event_obj.get("y", GROUND_Y), width=OBSTACLE_WIDTH*2, height=OBSTACLE_HEIGHT//2)
+
                     if mode == "wave":
-                        wave_obs = WaveObstacle(WINDOW_WIDTH + 10, random.random() * 2 * math.pi)
-                        wave_obs.speed = level["speed"]
-                        return wave_obs
-                    base = Obstacle(WINDOW_WIDTH + 10)
-                    base.speed = level["speed"]
-                    return base
+                        wave_obs = WaveObstacle(obs.x, random.random() * 2 * math.pi)
+                        wave_obs.base_y = obs.base_y
+                        wave_obs.speed = current_speed
+                        obstacles.append(wave_obs)
+                    else:
+                        obs.speed = current_speed
+                        obstacles.append(obs)
 
-                first = make_obs()
-                obstacles.append(first)
+                # stop if the map is done
+                if not custom_events and not obstacles:
+                    game_over = True
+                    game_state = "gameover"
+                    if score > high_score:
+                        high_score = score
 
-                if random.random() < HARDER_SPIKE_CHANCE:
-                    extra = make_obs()
-                    extra.x = WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10
-                    obstacles.append(extra)
+            else:
+                level = LEVELS[current_level]
+                current_speed = level["speed"]
+                frames_until_next -= 1
+                if frames_until_next <= 0:
+                    def make_obs() -> Obstacle:
+                        if mode == "wave":
+                            wave_obs = WaveObstacle(WINDOW_WIDTH + 10, random.random() * 2 * math.pi)
+                            wave_obs.speed = level["speed"]
+                            return wave_obs
+                        base = Obstacle(WINDOW_WIDTH + 10)
+                        base.speed = level["speed"]
+                        return base
 
-                frames_until_next = random.randint(level["min_gap"], level["max_gap"])
+                    first = make_obs()
+                    obstacles.append(first)
+
+                    if random.random() < HARDER_SPIKE_CHANCE:
+                        extra = make_obs()
+                        extra.x = WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10
+                        obstacles.append(extra)
+
+                    frames_until_next = random.randint(level["min_gap"], level["max_gap"])
 
             for obs in obstacles:
                 obs.update()
@@ -389,7 +477,7 @@ def run_game() -> None:
                     obs.passed = True
                     score += 1
                     coins += 1
-                    if score >= level["score_to_next"] and current_level + 1 < len(LEVELS):
+                    if not custom_mode and score >= level["score_to_next"] and current_level + 1 < len(LEVELS):
                         current_level += 1
 
                 if player.get_rect().colliderect(obs.get_rect()):
@@ -446,6 +534,30 @@ def run_game() -> None:
                 draw_text(screen, "Press P or ENTER to return to menu and play", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
             else:
                 draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} coins", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
+
+        elif game_state == "editor":
+            draw_text(screen, "LEVEL EDITOR", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
+            draw_text(screen, "Arrows to move cursor, 1 spike, 2 block, 3 speed, D delete", 20, WINDOW_WIDTH // 2, 120, WHITE, center=True)
+            draw_text(screen, "P/ENTER to play custom level, ESC/R to menu", 20, WINDOW_WIDTH // 2, 150, WHITE, center=True)
+            draw_text(screen, f"Cursor: ({editor_cursor[0]}, {editor_cursor[1]})", 18, 120, 200, SCORE_COLOR)
+            draw_text(screen, f"Editor objects: {len(editor_objects)}", 18, 120, 220, SCORE_COLOR)
+
+            # draw editor placement grid and objects
+            for x in range(EDITOR_GRID_X[0], EDITOR_GRID_X[1] + 1, EDITOR_CELL_SIZE):
+                pygame.draw.line(screen, (80, 80, 100), (x, EDITOR_GRID_Y[0]), (x, EDITOR_GRID_Y[1]), 1)
+            for y in range(EDITOR_GRID_Y[0], EDITOR_GRID_Y[1] + 1, EDITOR_CELL_SIZE):
+                pygame.draw.line(screen, (80, 80, 100), (EDITOR_GRID_X[0], y), (EDITOR_GRID_X[1], y), 1)
+
+            pygame.draw.circle(screen, (255, 255, 255), editor_cursor, 6)
+            for obj in editor_objects:
+                px = EDITOR_GRID_X[0] + int(obj["spawn_time"] / EDITOR_FRAMES_PER_PIXEL)
+                py = obj.get("y", GROUND_Y)
+                if obj["type"] == "spike":
+                    pygame.draw.polygon(screen, OBSTACLE_COLOR, [(px, py), (px-10, py+20), (px+10, py+20)])
+                elif obj["type"] == "block":
+                    pygame.draw.rect(screen, (200, 200, 200), (px-15, py, 30, 20))
+                elif obj["type"] == "speed":
+                    pygame.draw.circle(screen, (255, 200, 0), (px, py), 8)
 
         else:
             draw_text(screen, f"Score: {score}", 28, 16, 16, SCORE_COLOR)
