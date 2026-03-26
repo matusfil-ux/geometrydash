@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/geometrydash/__init__.py
+src/geometrydash/__main__.py
+src/geometrydash/cli.py
+src/geometrydash/game.py
+src/geometrydash.egg-info/PKG-INFO
+src/geometrydash.egg-info/SOURCES.txt
+src/geometrydash.egg-info/dependency_links.txt
+src/geometrydash.egg-info/entry_points.txt
+src/geometrydash.egg-info/requires.txt
+src/geometrydash.egg-info/top_level.txt
+tests/test_cli_minimal.py

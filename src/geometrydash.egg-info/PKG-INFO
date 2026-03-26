@@ -1,0 +1,412 @@
+Metadata-Version: 2.4
+Name: geometrydash
+Version: 0.1.0
+Summary: A simple Geometry Dash game in Python
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pygame>=2.5.0
+
+# Geometry Dash 🎮 — Python Game
+
+**Version:** 0.1.0  
+**Last Updated:** 2026-03-26  
+**Platform:** macOS (Apple Silicon M1 / M2 / M3)  
+**Language:** Python 3.10+  
+**Dependencies:** managed with [uv](https://github.com/astral-sh/uv) + `pyproject.toml`
+
+> 🎮 **Jump over red spikes, beat your high score, then open the code and make it your own!**  
+> This is a real Python package — the same structure used by professional programmers.
+
+---
+
+## 🗺️ What This Document Covers
+
+| I want to… | Where to look |
+|---|---|
+| [Set up and run the game → Quick Start](#-quick-start) | Install uv, clone, run — 5 steps |
+| [How to play → Controls](#-how-to-play) | SPACE to jump, avoid spikes |
+| [Understand the files → Project Structure](#-project-structure) | What each file does |
+| [Change the game → Improve It!](#-improve-the-game) | Colors, speed, gravity, new features |
+| [Understand the code → Code Tour](#-code-tour) | Walk through game.py step by step |
+| [Fix a problem → Troubleshooting](#-troubleshooting) | Common errors and fixes |
+
+---
+
+## ⚡ Quick Start
+
+Follow these steps **in order**. Each one builds on the previous.
+
+---
+
+### Step 1 — Install `uv`
+
+`uv` is a fast Python tool that creates virtual environments and installs packages for you.
+
+Open **Terminal** (press `Cmd+Space`, type `Terminal`, press Enter) and run:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Close and reopen Terminal, then check it works:
+
+```bash
+uv --version
+# → uv 0.x.x
+```
+
+---
+
+### Step 2 — Clone the repo
+
+```bash
+git clone https://github.com/merck-gen/geometrydash
+cd geometrydash
+```
+
+> 💡 `cd geometrydash` means "go into the geometrydash folder". All the following commands must be run from inside this folder.
+
+---
+
+### Step 3 — Create a virtual environment
+
+A **virtual environment** (`.venv`) is a private Python sandbox — packages you install here stay separate from everything else on your Mac.
+
+```bash
+uv venv
+```
+
+This creates a `.venv` folder inside the project. You only need to do this once.
+
+---
+
+### Step 4 — Install dependencies
+
+This reads `pyproject.toml` and installs everything the game needs (including `pygame`):
+
+```bash
+uv pip install -e .
+```
+
+> 💡 The `-e .` means *editable mode* — changes you make to the code take effect immediately, no reinstall needed.
+
+---
+
+### Step 5 — Run the game! 🚀
+
+```bash
+source .venv/bin/activate
+python -m geometrydash
+```
+
+A game window opens. **Press SPACE to start jumping!**
+
+> 💡 To quit: close the game window, or press `Ctrl+C` in Terminal.
+
+---
+
+### Every time you come back
+
+Next time you open Terminal and want to play or code, just do:
+
+```bash
+cd geometrydash
+source .venv/bin/activate
+python -m geometrydash
+```
+
+---
+
+## 🕹️ How to Play
+
+| Action | Key / Mouse |
+|--------|-------------|
+| **Start the game** | `SPACE` or left-click |
+| **Jump** | `SPACE` or left-click |
+| **Restart after game over** | `SPACE` or left-click |
+| **Quit** | Close the window |
+
+**Goal:** Jump over the red triangle spikes. Each spike you pass = **+1 point**.  
+The game ends the moment you hit a spike. Try to beat your best score!
+
+```
+   🟦                          ▲
+   🟦  ← you (cyan cube)      ▲▲▲  ← spike (jump over this!)
+────────────────────────────────────────────────────────────
+```
+
+The cyan cube **spins in the air** — that's normal, it looks cool! 😎
+
+---
+
+## 📁 Project Structure
+
+```
+geometrydash/
+│
+├── pyproject.toml              ← project config + list of packages to install
+├── README.md                   ← this file
+│
+└── src/
+    └── geometrydash/
+        ├── __init__.py         ← marks this folder as a Python package
+        ├── __main__.py         ← makes `python -m geometrydash` work
+        └── game.py             ← ⭐ THE WHOLE GAME IS HERE — edit this file!
+```
+
+> 💡 The `src/` layout is how professional Python projects are organized. Your game lives in `src/geometrydash/`.
+
+### What each file does
+
+| File | What it does |
+|------|-------------|
+| `pyproject.toml` | Tells `uv` which Python packages to install. `pygame` is listed here. |
+| `src/geometrydash/game.py` | The entire game — player, spikes, game loop. **Start here!** |
+| `src/geometrydash/__main__.py` | Called when you type `python -m geometrydash`. It just calls `main()` from `game.py`. |
+| `src/geometrydash/__init__.py` | Marks the folder as a package. Has the version number. |
+
+---
+
+## 🎨 Improve the Game
+
+Open `src/geometrydash/game.py` in VS Code (`code src/geometrydash/game.py`) and look for the **SETTINGS** section near the top:
+
+```python
+# ─────────────────────────────────────────────────────────────────────────────
+# SETTINGS — change these to tweak the game!
+# ─────────────────────────────────────────────────────────────────────────────
+```
+
+After every change: save the file (`Cmd+S`), then run the game again.
+
+---
+
+### 🟢 Easy — Change colors
+
+Colors are `(Red, Green, Blue)` — each number is 0–255.
+
+```python
+PLAYER_COLOR = (0, 200, 255)    # cyan  ← try (255, 100, 0) for orange
+OBSTACLE_COLOR = (255, 80, 80)  # red   ← try (0, 200, 100) for green spikes
+BACKGROUND_COLOR = (30, 30, 50) # dark  ← try (0, 0, 0) for pure black
+```
+
+---
+
+### 🟡 Medium — Change physics and speed
+
+```python
+JUMP_VELOCITY = -14   # higher number = bigger jump  (try -18 for super jump)
+GRAVITY = 0.7         # higher number = falls faster (try 0.4 for moon gravity)
+OBSTACLE_SPEED = 6    # higher number = faster spikes (try 9 for hard mode)
+```
+
+> ⚠️ `JUMP_VELOCITY` must stay **negative** (minus sign = upward). Don't remove the `-`!
+
+---
+
+### 🟠 Medium — Make the game speed up over time
+
+Inside `run_game()`, find the line:
+
+```python
+frames_until_next -= 1
+```
+
+Add these two lines **just above** it:
+
+```python
+if score > 0 and score % 5 == 0:
+    OBSTACLE_SPEED = min(OBSTACLE_SPEED + 0.01, 15)
+```
+
+Every 5 points the spikes get a tiny bit faster — up to a maximum speed of 15!
+
+---
+
+### 🔴 Hard — Add a double jump
+
+Find the `jump()` method inside the `Player` class:
+
+```python
+def jump(self) -> None:
+    """Make the player jump (only if standing on the ground)."""
+    if self.on_ground:
+        self.velocity_y = JUMP_VELOCITY
+        self.on_ground = False
+```
+
+Replace it with this:
+
+```python
+def jump(self) -> None:
+    """Jump — and allow one extra jump in the air!"""
+    if self.on_ground:
+        self.velocity_y = JUMP_VELOCITY
+        self.on_ground = False
+        self.jumps_used = 1
+    elif getattr(self, "jumps_used", 0) < 2:
+        self.velocity_y = JUMP_VELOCITY
+        self.jumps_used = 2
+```
+
+Also find `self.on_ground = True` inside `update()` and add one line below it:
+
+```python
+self.on_ground = True
+self.jumps_used = 0    # ← add this line
+```
+
+---
+
+### 🔴 Hard — Add a second obstacle type
+
+After the `Obstacle` class in `game.py`, add this new class:
+
+```python
+class WideObstacle(Obstacle):
+    """A wider, shorter obstacle — tricky to time!"""
+    def __init__(self, x: int) -> None:
+        super().__init__(x)
+        self.width = 60    # twice as wide
+        self.height = 30   # half as tall
+```
+
+Then in `run_game()`, find:
+
+```python
+obstacles.append(Obstacle(WINDOW_WIDTH + 10))
+```
+
+Replace it with:
+
+```python
+if random.random() < 0.3:
+    obstacles.append(WideObstacle(WINDOW_WIDTH + 10))
+else:
+    obstacles.append(Obstacle(WINDOW_WIDTH + 10))
+```
+
+---
+
+## 🧭 Code Tour
+
+Here is a map of `game.py` so you know where everything lives:
+
+```
+game.py
+│
+├── SETTINGS block        ← colors, sizes, speed, gravity — change these first!
+│
+├── class Player          ← the cyan spinning square you control
+│   ├── reset()           ← puts the player back at the start
+│   ├── jump()            ← fires when you press SPACE
+│   ├── update()          ← runs every frame: gravity, landing
+│   ├── get_rect()        ← collision box used for hit detection
+│   └── draw()            ← draws the spinning cube on screen
+│
+├── class Obstacle        ← the red triangle spikes
+│   ├── update()          ← moves the spike left every frame
+│   ├── is_offscreen()    ← True when the spike exits the left edge
+│   ├── get_rect()        ← collision box
+│   └── draw()            ← draws the triangle
+│
+├── class Background      ← scrolling diagonal lines (speed effect)
+│   ├── update()          ← shifts the lines left
+│   └── draw()            ← draws them
+│
+├── draw_text()           ← helper to draw words on screen
+│
+└── run_game()            ← THE MAIN GAME LOOP ⭐
+    ├── Events            ← reads keyboard / mouse input
+    ├── Update            ← moves everything, checks collisions, counts score
+    └── Draw              ← clears screen, draws everything, shows score
+```
+
+### How every game works — the game loop
+
+Every game (Minecraft, Fortnite, this one) runs in a loop that repeats **60 times per second**:
+
+```
+while True:
+    1. Read input    ← did the player press SPACE?
+    2. Update        ← move player, move spikes, check if they hit
+    3. Draw          ← clear screen, draw everything fresh
+    4. Wait          ← pause until 1/60th of a second has passed
+    → repeat!
+```
+
+This is called the **game loop**. You can see it at the bottom of `game.py` inside `run_game()`.
+
+---
+
+## 🔍 Troubleshooting
+
+---
+
+### ❌ `ModuleNotFoundError: No module named 'pygame'`
+
+The virtual environment is not activated, or `pip install` was not run.
+
+**Fix:**
+```bash
+source .venv/bin/activate
+uv pip install -e .
+python -m geometrydash
+```
+
+---
+
+### ❌ `ModuleNotFoundError: No module named 'geometrydash'`
+
+The package is not installed.
+
+**Fix:**
+```bash
+uv pip install -e .
+```
+
+---
+
+### ❌ `uv: command not found`
+
+`uv` was not installed, or Terminal was not restarted after installing it.
+
+**Fix:** Close Terminal completely, reopen it, and try again. If still missing:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+---
+
+### ❌ The window opens but nothing happens / screen is black
+
+Press **SPACE** or click inside the window to start!
+
+---
+
+### ❌ `(.venv)` is not showing in the terminal prompt
+
+You forgot to activate the virtual environment.
+
+**Fix:**
+```bash
+source .venv/bin/activate
+```
+
+---
+
+## 🔗 Quick Reference
+
+| Task | Command |
+|------|---------|
+| Create virtual environment | `uv venv` |
+| Install dependencies | `uv pip install -e .` |
+| Activate virtual environment | `source .venv/bin/activate` |
+| **Run the game** | `python -m geometrydash` |
+| Edit the game | `code src/geometrydash/game.py` |
+| Add a new package | Add it to `dependencies` in `pyproject.toml`, then `uv pip install -e .` |
+
+---
+
+> 🚀 **Beat your high score — then open `game.py` and make it your own!**
