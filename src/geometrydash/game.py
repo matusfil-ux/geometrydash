@@ -106,7 +106,8 @@ class Player:
         self.on_ground = True
         self.angle = 0.0
         self.color = PLAYER_COLOR
-        self.can_double_jump = False
+        self.max_jumps = 2
+        self.available_jumps = 2
 
     def reset(self) -> None:
         """Put the player back at the starting position."""
@@ -114,18 +115,19 @@ class Player:
         self.y = float(GROUND_Y - PLAYER_SIZE)
         self.velocity_y = 0.0
         self.on_ground = True
-        self.can_double_jump = False
         self.angle = 0.0
+        self.max_jumps = 2
+        self.available_jumps = 2
 
     def jump(self) -> None:
-        """Make the player jump (can jump on ground or double jump in the air)."""
+        """Make the player jump (can jump on ground or multi-jump in the air)."""
         if self.on_ground:
             self.velocity_y = JUMP_VELOCITY
             self.on_ground = False
-            self.can_double_jump = True
-        elif self.can_double_jump:
+            self.available_jumps = self.max_jumps - 1
+        elif self.available_jumps > 0:
             self.velocity_y = JUMP_VELOCITY
-            self.can_double_jump = False
+            self.available_jumps -= 1
 
     def update(self, gravity: float = GRAVITY) -> None:
         """Move the player each frame."""
@@ -139,7 +141,7 @@ class Player:
             self.y = float(GROUND_Y - PLAYER_SIZE)
             self.velocity_y = 0.0
             self.on_ground = True
-            self.can_double_jump = False
+            self.available_jumps = self.max_jumps
             self.angle = 0.0
 
     def get_rect(self) -> pygame.Rect:
@@ -487,7 +489,10 @@ def run_game() -> None:
                     gravity_change_timer = 0
             else:
                 current_gravity = GRAVITY
-            
+
+            # Level-dependent jump count (level 4 gets triple jump)
+            player.max_jumps = 3 if current_level == 3 else 2
+
             player.update(current_gravity)
             background.update()
 
@@ -683,6 +688,7 @@ def run_game() -> None:
             draw_text(screen, f"Best:  {high_score}", 20, 16, 80, (180, 180, 100))
             draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 110, (180, 180, 180))
             draw_text(screen, f"Level: {LEVELS[current_level]['name']}", 20, 16, 140, (200, 200, 255))
+            draw_text(screen, f"Jumps left: {player.available_jumps}", 18, 16, 170, (180, 220, 255))
             
             if mode == "gravity" and game_state == "playing":
                 draw_text(screen, f"Gravity: {current_gravity:.2f}", 18, 16, 170, (255, 180, 100))
