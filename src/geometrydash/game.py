@@ -336,6 +336,8 @@ def run_game() -> None:
     custom_timer = 0
     current_speed = OBSTACLE_SPEED
     player_name = "Player"
+    player_name_input = ""
+    editing_name = False
     stars = 0
     stars_per_level = {0: 0, 1: 0, 2: 0, 3: 0}  # Track stars earned per level
     beaten_levels = set()
@@ -347,7 +349,7 @@ def run_game() -> None:
     STARS_FOR_LEVEL = {0: 2, 1: 4, 2: 5, 3: 9}  # Level index -> stars for beating it
 
     def reset() -> None:
-        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity, death_position, level_timer, stars, stars_per_level, beaten_levels
+        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity, death_position, level_timer, player_name_input, editing_name, stars, stars_per_level, beaten_levels
         player.reset()
         obstacles = []
         score = 0
@@ -364,6 +366,8 @@ def run_game() -> None:
         current_gravity = GRAVITY
         death_position = None
         level_timer = 0
+        player_name_input = ""
+        editing_name = False
 
     while True:
         # ── Events ────────────────────────────────────────────────────────────
@@ -452,6 +456,25 @@ def run_game() -> None:
                         custom_timer = 0
                         custom_events = sorted(editor_objects, key=lambda o: o["spawn_time"])
                         current_speed = OBSTACLE_SPEED
+
+            if event.type == pygame.MOUSEBUTTONDOWN and game_state == "profile":
+                click_x, click_y = event.pos
+                name_box = pygame.Rect(WINDOW_WIDTH // 2 - 150, 140, 300, 36)
+                if name_box.collidepoint(click_x, click_y):
+                    editing_name = True
+                    player_name_input = player_name
+
+            if event.type == pygame.KEYDOWN and editing_name:
+                if event.key == pygame.K_RETURN:
+                    editing_name = False
+                    trimmed = player_name_input.strip()
+                    player_name = trimmed if trimmed else "Player"
+                elif event.key == pygame.K_BACKSPACE:
+                    player_name_input = player_name_input[:-1]
+                else:
+                    char = event.unicode
+                    if char.isprintable() and len(player_name_input) < 18:
+                        player_name_input += char
 
             jump = (
                 (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
@@ -624,7 +647,15 @@ def run_game() -> None:
 
         elif game_state == "profile":
             draw_text(screen, "PROFILE", 56, WINDOW_WIDTH // 2, 80, SCORE_COLOR, center=True)
-            draw_text(screen, f"Name: {player_name}", 32, WINDOW_WIDTH // 2, 150, WHITE, center=True)
+            name_box = pygame.Rect(WINDOW_WIDTH // 2 - 150, 140, 300, 36)
+            pygame.draw.rect(screen, (80, 80, 80), name_box, border_radius=4)
+            pygame.draw.rect(screen, WHITE if editing_name else (180, 180, 180), name_box, 2, border_radius=4)
+            if editing_name:
+                display_name = player_name_input or "Enter name..."
+            else:
+                display_name = player_name
+            draw_text(screen, f"Name: {display_name}", 28, WINDOW_WIDTH // 2, 150, WHITE, center=True)
+            draw_text(screen, "(click name to edit, max 18 chars)", 16, WINDOW_WIDTH // 2, 180, (200, 200, 200), center=True)
             
             # Show current icon
             icon_size = 60
@@ -634,7 +665,7 @@ def run_game() -> None:
             
             draw_text(screen, f"★ Stars: {stars}", 32, WINDOW_WIDTH // 2, 330, SCORE_COLOR, center=True)
             draw_text(screen, f"Coins: {coins}", 24, WINDOW_WIDTH // 2, 370, (180, 255, 180), center=True)
-            draw_text(screen, "Press ESC to return to menu", 20, WINDOW_WIDTH // 2, 370, WHITE, center=True)
+            draw_text(screen, "Press ESC to return to menu", 20, WINDOW_WIDTH // 2, 400, WHITE, center=True)
 
         elif game_state == "shop":
             draw_text(screen, "SHOP", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
