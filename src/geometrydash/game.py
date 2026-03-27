@@ -320,6 +320,7 @@ def run_game() -> None:
     current_level = 0
     selected_level = 0
     frames_until_next = LEVELS[current_level]["min_gap"]
+    level_timer = 0
     game_over = False
     started = False
     game_state = "menu"  # menu, level_select, playing, shop, editor, profile, level_complete, gameover
@@ -341,10 +342,10 @@ def run_game() -> None:
     death_position = None
     
     # Star rewards per level when beaten
-    STARS_FOR_LEVEL = {0: 2, 1: 4, 2: 5, 3: 8}  # Level index -> stars for beating it
+    STARS_FOR_LEVEL = {0: 2, 1: 4, 2: 5, 3: 9}  # Level index -> stars for beating it
 
     def reset() -> None:
-        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity, death_position, stars, stars_per_level, beaten_levels
+        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity, death_position, level_timer, stars, stars_per_level, beaten_levels
         player.reset()
         obstacles = []
         score = 0
@@ -360,6 +361,7 @@ def run_game() -> None:
         gravity_change_timer = 0
         current_gravity = GRAVITY
         death_position = None
+        level_timer = 0
 
     while True:
         # ── Events ────────────────────────────────────────────────────────────
@@ -408,8 +410,8 @@ def run_game() -> None:
                     score = 0
                     current_level = selected_level
                     frames_until_next = LEVELS[current_level]["min_gap"]
-                    current_level = selected_level
-                    frames_until_next = LEVELS[current_level]["min_gap"]
+                    level_timer = 0
+                    death_position = None
 
             if event.type == pygame.KEYDOWN and game_state == "editor":
                 if event.key == pygame.K_RIGHT:
@@ -457,20 +459,21 @@ def run_game() -> None:
                 started = True
                 player.jump()
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_r and game_state == "gameover":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r and game_state in {"gameover", "level_complete"}:
                 # Restart the same level
                 player.reset()
                 obstacles = []
                 score = 0
                 current_level = selected_level
                 frames_until_next = LEVELS[current_level]["min_gap"]
+                level_timer = 0
                 game_over = False
                 started = False
                 game_state = "playing"
                 gravity_change_timer = 0
                 current_gravity = GRAVITY
                 death_position = None
-            elif jump and game_state == "gameover":
+            elif jump and game_state in {"gameover", "level_complete"}:
                 game_state = "menu"
                 reset()
 
@@ -573,6 +576,17 @@ def run_game() -> None:
 
             obstacles = [o for o in obstacles if not o.is_offscreen()]
 
+            # On Level 4, win by surviving 60 seconds
+            if current_level == 3 and not custom_mode:
+                level_timer += 1
+                if level_timer >= FPS * 60:
+                    game_state = "level_complete"
+                    started = False
+                    if current_level not in beaten_levels:
+                        beaten_levels.add(current_level)
+                        stars_per_level[current_level] = STARS_FOR_LEVEL.get(current_level, 0)
+                        stars = sum(stars_per_level.values())
+
         # Ensure selected player's cube color is applied
         player.color = ICON_COLORS[selected_icon]
 
@@ -673,11 +687,19 @@ def run_game() -> None:
             if mode == "gravity" and game_state == "playing":
                 draw_text(screen, f"Gravity: {current_gravity:.2f}", 18, 16, 170, (255, 180, 100))
 
+            if current_level == 3 and game_state == "playing":
+                remaining = max(0, 60 - level_timer // FPS)
+                draw_text(screen, f"Time Remaining: {remaining}s", 20, 16, 180, (180, 255, 180))
+
             if game_state == "gameover":
                 if death_position:
                     pygame.draw.rect(screen, (255, 0, 0), (int(death_position[0]) - 20, int(death_position[1]) - 20, 40, 40))
                 draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
                 draw_text(screen, f"Score: {score}   Best: {high_score}", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
+                draw_text(screen, "Press R to retry level, SPACE/click to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
+            elif game_state == "level_complete":
+                draw_text(screen, "LEVEL COMPLETE", 56, WINDOW_WIDTH // 2, 140, (100, 255, 100), center=True)
+                draw_text(screen, "You survived 60 seconds!", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
                 draw_text(screen, "Press R to retry level, SPACE/click to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
 
         pygame.display.flip()
