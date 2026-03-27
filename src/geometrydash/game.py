@@ -79,10 +79,10 @@ UNLOCK_COST = 100
 
 # Level settings
 LEVELS = [
-    {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "score_to_next": 9999, "block_chance": 0},
-    {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999, "block_chance": 0.05},
-    {"name": "Level 3 - Hard", "speed": 11, "min_gap": 35, "max_gap": 65, "score_to_next": 9999, "block_chance": 0.1},
-    {"name": "Level 4 - Insane Ride", "speed": 12, "min_gap": 25, "max_gap": 50, "score_to_next": 9999, "block_chance": 0.4},
+    {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "score_to_next": 9999, "block_chance": 0, "duration": 80},
+    {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999, "block_chance": 0.05, "duration": 80},
+    {"name": "Level 3 - Hard", "speed": 11, "min_gap": 35, "max_gap": 65, "score_to_next": 9999, "block_chance": 0.1, "duration": 60},
+    {"name": "Level 4 - Insane Ride", "speed": 12, "min_gap": 25, "max_gap": 50, "score_to_next": 9999, "block_chance": 0.4, "duration": 60},
 ]
 
 # Editor settings
@@ -581,10 +581,11 @@ def run_game() -> None:
 
             obstacles = [o for o in obstacles if not o.is_offscreen()]
 
-            # On Level 4, win by surviving 60 seconds
-            if current_level == 3 and not custom_mode:
+            # Level timer and win condition for all normal levels
+            if not custom_mode and game_state == "playing":
                 level_timer += 1
-                if level_timer >= FPS * 60:
+                level_duration = LEVELS[current_level].get("duration", 60)
+                if level_timer >= FPS * level_duration:
                     game_state = "level_complete"
                     started = False
                     if current_level not in beaten_levels:
@@ -693,8 +694,9 @@ def run_game() -> None:
             if mode == "gravity" and game_state == "playing":
                 draw_text(screen, f"Gravity: {current_gravity:.2f}", 18, 16, 170, (255, 180, 100))
 
-            if current_level == 3 and game_state == "playing":
-                remaining = max(0, 60 - level_timer // FPS)
+            if game_state == "playing" and not custom_mode:
+                duration = LEVELS[current_level].get("duration", 60)
+                remaining = max(0, duration - level_timer // FPS)
                 draw_text(screen, f"Time Remaining: {remaining}s", 20, 16, 180, (180, 255, 180))
 
             if game_state == "gameover":
