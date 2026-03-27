@@ -79,9 +79,10 @@ UNLOCK_COST = 100
 
 # Level settings
 LEVELS = [
-    {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "score_to_next": 9999},
-    {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999},
-    {"name": "Level 3 - Hard", "speed": 11, "min_gap": 35, "max_gap": 65, "score_to_next": 9999},
+    {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "score_to_next": 9999, "block_chance": 0},
+    {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999, "block_chance": 0.05},
+    {"name": "Level 3 - Hard", "speed": 11, "min_gap": 35, "max_gap": 65, "score_to_next": 9999, "block_chance": 0.1},
+    {"name": "Level 4 - Insane Ride", "speed": 12, "min_gap": 25, "max_gap": 50, "score_to_next": 9999, "block_chance": 0.4},
 ]
 
 # Editor settings
@@ -326,12 +327,17 @@ def run_game() -> None:
     current_speed = OBSTACLE_SPEED
     player_name = "Player"
     stars = 0
+    stars_per_level = {0: 0, 1: 0, 2: 0, 3: 0}  # Track stars earned per level
     beaten_levels = set()
     gravity_change_timer = 0
     current_gravity = GRAVITY
+    death_position = None
+    
+    # Star rewards per level when beaten
+    STARS_FOR_LEVEL = {0: 2, 1: 4, 2: 5, 3: 8}  # Level index -> stars for beating it
 
     def reset() -> None:
-        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity
+        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity, death_position, stars, stars_per_level, beaten_levels
         player.reset()
         obstacles = []
         score = 0
@@ -346,6 +352,7 @@ def run_game() -> None:
         current_speed = OBSTACLE_SPEED
         gravity_change_timer = 0
         current_gravity = GRAVITY
+        death_position = None
 
     while True:
         # ── Events ────────────────────────────────────────────────────────────
@@ -501,7 +508,13 @@ def run_game() -> None:
                             wave_obs = WaveObstacle(WINDOW_WIDTH + 10, random.random() * 2 * math.pi)
                             wave_obs.speed = level["speed"]
                             return wave_obs
-                        base = Obstacle(WINDOW_WIDTH + 10)
+                        
+                        # Decide if this should be a block or spike based on level difficulty
+                        is_block = random.random() < level.get("block_chance", 0)
+                        if is_block:
+                            base = Obstacle(WINDOW_WIDTH + 10, width=OBSTACLE_WIDTH*2, height=OBSTACLE_HEIGHT//2)
+                        else:
+                            base = Obstacle(WINDOW_WIDTH + 10)
                         base.speed = level["speed"]
                         return base
 
@@ -525,11 +538,18 @@ def run_game() -> None:
                         current_level += 1
 
                 if player.get_rect().colliderect(obs.get_rect()):
+                    death_position = (player.x, player.y)
                     game_over = True
                     game_state = "gameover"
                     death_sound.play()
                     if score > high_score:
                         high_score = score
+                    
+                    # Award stars for beating the level (if not in custom mode and haven't beaten this level yet)
+                    if not custom_mode and current_level not in beaten_levels and not custom_mode:
+                        beaten_levels.add(current_level)
+                        stars_per_level[current_level] = STARS_FOR_LEVEL.get(current_level, 0)
+                        stars = sum(stars_per_level.values())
 
             obstacles = [o for o in obstacles if not o.is_offscreen()]
 
@@ -634,6 +654,8 @@ def run_game() -> None:
                 draw_text(screen, f"Gravity: {current_gravity:.2f}", 18, 16, 170, (255, 180, 100))
 
             if game_state == "gameover":
+                if death_position:
+                    pygame.draw.rect(screen, (255, 0, 0), (int(death_position[0]) - 20, int(death_position[1]) - 20, 40, 40))
                 draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
                 draw_text(screen, f"Score: {score}   Best: {high_score}", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
                 draw_text(screen, "Press SPACE or click to return to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)

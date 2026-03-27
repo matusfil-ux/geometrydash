@@ -14,6 +14,8 @@ Requires-Dist: pygame>=2.5.0
 **Language:** Python 3.10+  
 **Dependencies:** managed with [uv](https://github.com/astral-sh/uv) + `pyproject.toml`
 
+**GITHUB:** [matusfil-ux](https://github.com/matusfil-ux/geometrydash)
+
 > 🎮 **Jump over red spikes, beat your high score, then open the code and make it your own!**  
 > This is a real Python package — the same structure used by professional programmers.
 
