@@ -81,7 +81,7 @@ UNLOCK_COST = 100
 LEVELS = [
     {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "score_to_next": 9999},
     {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999},
-    {"name": "Level 3 - Hard", "speed": 10, "min_gap": 50, "max_gap": 90, "score_to_next": 9999},
+    {"name": "Level 3 - Hard", "speed": 11, "min_gap": 35, "max_gap": 65, "score_to_next": 9999},
 ]
 
 # Editor settings
