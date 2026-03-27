@@ -83,6 +83,7 @@ LEVELS = [
     {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999, "block_chance": 0.05, "duration": 80},
     {"name": "Level 3 - Hard", "speed": 11, "min_gap": 35, "max_gap": 65, "score_to_next": 9999, "block_chance": 0.1, "duration": 60},
     {"name": "Level 4 - Insane Ride", "speed": 12, "min_gap": 25, "max_gap": 50, "score_to_next": 9999, "block_chance": 0.4, "duration": 60},
+    {"name": "Level 5 - Demon Ride", "speed": 5, "min_gap": 20, "max_gap": 40, "score_to_next": 9999, "block_chance": 0.5, "duration": 45},
 ]
 
 # Editor settings
@@ -346,7 +347,7 @@ def run_game() -> None:
     death_position = None
     
     # Star rewards per level when beaten
-    STARS_FOR_LEVEL = {0: 2, 1: 4, 2: 5, 3: 9}  # Level index -> stars for beating it
+    STARS_FOR_LEVEL = {0: 2, 1: 4, 2: 5, 3: 9, 4: 10}  # Level index -> stars for beating it
 
     def reset() -> None:
         nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity, death_position, level_timer, player_name_input, editing_name, stars, stars_per_level, beaten_levels
@@ -513,8 +514,13 @@ def run_game() -> None:
             else:
                 current_gravity = GRAVITY
 
-            # Level-dependent jump count (level 4 gets triple jump)
-            player.max_jumps = 3 if current_level == 3 else 2
+            # Level-dependent jump count
+            if current_level == 3:  # Level 4 Insane Ride
+                player.max_jumps = 3
+            elif current_level == 4:  # Level 5 Demon Ride
+                player.max_jumps = 1
+            else:
+                player.max_jumps = 2
 
             player.update(current_gravity)
             background.update()
