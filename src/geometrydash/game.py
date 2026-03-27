@@ -610,11 +610,11 @@ def run_game() -> None:
             draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 290, (180, 255, 180), center=True)
 
         elif game_state == "level_select":
-            draw_text(screen, "SELECT LEVEL", 56, WINDOW_WIDTH // 2, 80, SCORE_COLOR, center=True)
+            draw_text(screen, "Use LEFT/RIGHT to choose, ENTER to play, ESC to menu", 20, WINDOW_WIDTH // 2, 50, WHITE, center=True)
+            draw_text(screen, "SELECT LEVEL", 56, WINDOW_WIDTH // 2, 90, SCORE_COLOR, center=True)
             for idx, lvl in enumerate(LEVELS):
                 color = SCORE_COLOR if idx == selected_level else (180, 180, 180)
-                draw_text(screen, f"{idx+1} - {lvl['name']}", 40, WINDOW_WIDTH // 2, 160 + idx*50, color, center=True)
-            draw_text(screen, "Use LEFT/RIGHT to choose, ENTER to play, ESC to menu", 20, WINDOW_WIDTH // 2, 320, WHITE, center=True)
+                draw_text(screen, f"{idx+1} - {lvl['name']}", 40, WINDOW_WIDTH // 2, 170 + idx*50, color, center=True)
 
         elif game_state == "profile":
             draw_text(screen, "PROFILE", 56, WINDOW_WIDTH // 2, 80, SCORE_COLOR, center=True)
