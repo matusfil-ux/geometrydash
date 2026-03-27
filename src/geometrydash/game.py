@@ -450,7 +450,20 @@ def run_game() -> None:
                 started = True
                 player.jump()
 
-            if jump and game_state == "gameover":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r and game_state == "gameover":
+                # Restart the same level
+                player.reset()
+                obstacles = []
+                score = 0
+                current_level = selected_level
+                frames_until_next = LEVELS[current_level]["min_gap"]
+                game_over = False
+                started = False
+                game_state = "playing"
+                gravity_change_timer = 0
+                current_gravity = GRAVITY
+                death_position = None
+            elif jump and game_state == "gameover":
                 game_state = "menu"
                 reset()
 
@@ -658,7 +671,7 @@ def run_game() -> None:
                     pygame.draw.rect(screen, (255, 0, 0), (int(death_position[0]) - 20, int(death_position[1]) - 20, 40, 40))
                 draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
                 draw_text(screen, f"Score: {score}   Best: {high_score}", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
-                draw_text(screen, "Press SPACE or click to return to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
+                draw_text(screen, "Press R to retry level, SPACE/click to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
 
         pygame.display.flip()
         clock.tick(FPS)
