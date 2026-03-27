@@ -59,10 +59,13 @@ OBSTACLE_MIN_GAP = 60                 # minimum frames between obstacles
 OBSTACLE_MAX_GAP = 120                # maximum frames between obstacles
 
 # Game mode settings
-GAME_MODES = ("classic", "wave")
+GAME_MODES = ("classic", "wave", "gravity")
 HARDER_SPIKE_CHANCE = 0.35            # chance to create a second nearby spike
 WAVE_OBSTACLE_AMPLITUDE = 80         # vertical movement amplitude for wave mode
 WAVE_OBSTACLE_FREQUENCY = 0.02       # speed of vertical oscillation
+GRAVITY_CHANGE_INTERVAL = 300        # frames (5 seconds at 60 FPS)
+GRAVITY_MIN = 0.3
+GRAVITY_MAX = 1.2
 
 # shop settings
 ICON_COLORS = [
@@ -117,9 +120,9 @@ class Player:
             self.velocity_y = JUMP_VELOCITY
             self.on_ground = False
 
-    def update(self) -> None:
+    def update(self, gravity: float = GRAVITY) -> None:
         """Move the player each frame."""
-        self.velocity_y += GRAVITY
+        self.velocity_y += gravity
         self.y += self.velocity_y
 
         if not self.on_ground:
@@ -324,9 +327,11 @@ def run_game() -> None:
     player_name = "Player"
     stars = 0
     beaten_levels = set()
+    gravity_change_timer = 0
+    current_gravity = GRAVITY
 
     def reset() -> None:
-        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed
+        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity
         player.reset()
         obstacles = []
         score = 0
@@ -339,6 +344,8 @@ def run_game() -> None:
         custom_events = []
         custom_timer = 0
         current_speed = OBSTACLE_SPEED
+        gravity_change_timer = 0
+        current_gravity = GRAVITY
 
     while True:
         # ── Events ────────────────────────────────────────────────────────────
@@ -348,7 +355,10 @@ def run_game() -> None:
                 sys.exit()
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
-                mode = "wave" if mode == "classic" else "classic"
+                current_idx = GAME_MODES.index(mode)
+                mode = GAME_MODES[(current_idx + 1) % len(GAME_MODES)]
+                gravity_change_timer = 0
+                current_gravity = GRAVITY
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and game_state == "menu":
                 game_state = "level_select"
@@ -439,7 +449,16 @@ def run_game() -> None:
 
         # ── Update ────────────────────────────────────────────────────────────
         if started and not game_over and game_state == "playing":
-            player.update()
+            # Handle gravity changes in gravity mode
+            if mode == "gravity":
+                gravity_change_timer += 1
+                if gravity_change_timer >= GRAVITY_CHANGE_INTERVAL:
+                    current_gravity = random.uniform(GRAVITY_MIN, GRAVITY_MAX)
+                    gravity_change_timer = 0
+            else:
+                current_gravity = GRAVITY
+            
+            player.update(current_gravity)
             background.update()
 
             if custom_mode:
@@ -533,7 +552,7 @@ def run_game() -> None:
             draw_text(screen, "GEOMETRY DASH", 60, WINDOW_WIDTH // 2, 100, PLAYER_COLOR, center=True)
             draw_text(screen, "Press ENTER to Play, P for Profile, E for Levels", 28, WINDOW_WIDTH // 2, 170, WHITE, center=True)
             draw_text(screen, "S for Shop, C for Create, M to toggle mode", 22, WINDOW_WIDTH // 2, 210, WHITE, center=True)
-            draw_text(screen, f"Mode: {mode.upper()}", 20, WINDOW_WIDTH // 2, 260, (180, 180, 180), center=True)
+            draw_text(screen, f"Mode: {mode.upper()} (press M to cycle)", 20, WINDOW_WIDTH // 2, 260, (180, 180, 180), center=True)
             draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 290, (180, 255, 180), center=True)
 
         elif game_state == "level_select":
@@ -610,6 +629,9 @@ def run_game() -> None:
             draw_text(screen, f"Best:  {high_score}", 20, 16, 80, (180, 180, 100))
             draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 110, (180, 180, 180))
             draw_text(screen, f"Level: {LEVELS[current_level]['name']}", 20, 16, 140, (200, 200, 255))
+            
+            if mode == "gravity" and game_state == "playing":
+                draw_text(screen, f"Gravity: {current_gravity:.2f}", 18, 16, 170, (255, 180, 100))
 
             if game_state == "gameover":
                 draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
