@@ -336,11 +336,12 @@ def run_game() -> None:
     custom_events: list[dict[str, int|str]] = []
     custom_timer = 0
     current_speed = OBSTACLE_SPEED
+    level_rng = random.Random()
     player_name = "Player"
     player_name_input = ""
     editing_name = False
     stars = 0
-    stars_per_level = {0: 0, 1: 0, 2: 0, 3: 0}  # Track stars earned per level
+    stars_per_level = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}  # Track stars earned per level
     beaten_levels = set()
     gravity_change_timer = 0
     current_gravity = GRAVITY
@@ -419,6 +420,11 @@ def run_game() -> None:
                     frames_until_next = LEVELS[current_level]["min_gap"]
                     level_timer = 0
                     death_position = None
+                    level_seed = LEVELS[current_level].get("seed", None)
+                    if level_seed is not None:
+                        level_rng.seed(level_seed)
+                    else:
+                        level_rng = random.Random()
 
             if event.type == pygame.KEYDOWN and game_state == "editor":
                 if event.key == pygame.K_RIGHT:
@@ -493,6 +499,11 @@ def run_game() -> None:
                 current_level = selected_level
                 frames_until_next = LEVELS[current_level]["min_gap"]
                 level_timer = 0
+                level_seed = LEVELS[current_level].get("seed", None)
+                if level_seed is not None:
+                    level_rng.seed(level_seed)
+                else:
+                    level_rng = random.Random()
                 game_over = False
                 started = False
                 game_state = "playing"
@@ -562,12 +573,12 @@ def run_game() -> None:
                 if frames_until_next <= 0:
                     def make_obs() -> Obstacle:
                         if mode == "wave":
-                            wave_obs = WaveObstacle(WINDOW_WIDTH + 10, random.random() * 2 * math.pi)
+                            wave_obs = WaveObstacle(WINDOW_WIDTH + 10, level_rng.random() * 2 * math.pi)
                             wave_obs.speed = level["speed"]
                             return wave_obs
                         
                         # Decide if this should be a block or spike based on level difficulty
-                        is_block = random.random() < level.get("block_chance", 0)
+                        is_block = level_rng.random() < level.get("block_chance", 0)
                         if is_block:
                             base = Obstacle(WINDOW_WIDTH + 10, width=OBSTACLE_WIDTH*2, height=OBSTACLE_HEIGHT//2)
                         else:
@@ -578,7 +589,7 @@ def run_game() -> None:
                     first = make_obs()
                     obstacles.append(first)
 
-                    if random.random() < HARDER_SPIKE_CHANCE:
+                    if current_level != 4 and level_rng.random() < HARDER_SPIKE_CHANCE:
                         extra = make_obs()
                         extra.x = WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10
                         obstacles.append(extra)
