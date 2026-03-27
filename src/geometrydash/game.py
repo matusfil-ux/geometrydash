@@ -106,6 +106,7 @@ class Player:
         self.on_ground = True
         self.angle = 0.0
         self.color = PLAYER_COLOR
+        self.can_double_jump = False
 
     def reset(self) -> None:
         """Put the player back at the starting position."""
@@ -113,13 +114,18 @@ class Player:
         self.y = float(GROUND_Y - PLAYER_SIZE)
         self.velocity_y = 0.0
         self.on_ground = True
+        self.can_double_jump = False
         self.angle = 0.0
 
     def jump(self) -> None:
-        """Make the player jump (only if standing on the ground)."""
+        """Make the player jump (can jump on ground or double jump in the air)."""
         if self.on_ground:
             self.velocity_y = JUMP_VELOCITY
             self.on_ground = False
+            self.can_double_jump = True
+        elif self.can_double_jump:
+            self.velocity_y = JUMP_VELOCITY
+            self.can_double_jump = False
 
     def update(self, gravity: float = GRAVITY) -> None:
         """Move the player each frame."""
@@ -133,6 +139,7 @@ class Player:
             self.y = float(GROUND_Y - PLAYER_SIZE)
             self.velocity_y = 0.0
             self.on_ground = True
+            self.can_double_jump = False
             self.angle = 0.0
 
     def get_rect(self) -> pygame.Rect:
