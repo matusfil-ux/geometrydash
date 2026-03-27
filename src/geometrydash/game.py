@@ -350,28 +350,25 @@ def run_game() -> None:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
                 mode = "wave" if mode == "classic" else "classic"
 
-            if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_p) and game_state == "menu":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and game_state == "menu":
+                game_state = "level_select"
+                selected_level = 0
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_p and game_state == "menu":
+                game_state = "profile"
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_e and game_state == "menu":
                 game_state = "level_select"
                 selected_level = 0
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_s and game_state == "menu":
                 game_state = "shop"
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_e and game_state == "menu":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_c and game_state == "menu":
                 game_state = "editor"
                 editor_cursor = [EDITOR_GRID_X[0], EDITOR_GRID_Y[0]]
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state in {"shop", "editor", "level_select"}:
-                game_state = "menu"
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_s and game_state == "menu":
-                game_state = "shop"
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_e and game_state == "menu":
-                game_state = "editor"
-                editor_cursor = [EDITOR_GRID_X[0], EDITOR_GRID_Y[0]]
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state in {"shop", "editor"}:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state in {"shop", "editor", "level_select", "profile"}:
                 game_state = "menu"
 
             if event.type == pygame.KEYDOWN and game_state == "level_select":
@@ -534,12 +531,10 @@ def run_game() -> None:
 
         if game_state == "menu":
             draw_text(screen, "GEOMETRY DASH", 60, WINDOW_WIDTH // 2, 100, PLAYER_COLOR, center=True)
-            draw_text(screen, "Press ENTER or P to Choose Level", 32, WINDOW_WIDTH // 2, 170, WHITE, center=True)
-            draw_text(screen, "Press S for Shop, E for Editor", 26, WINDOW_WIDTH // 2, 210, WHITE, center=True)
-            draw_text(screen, "Press M to toggle mode", 22, WINDOW_WIDTH // 2, 250, (180, 180, 180), center=True)
-            draw_text(screen, f"Selected Level: {LEVELS[selected_level]['name']}", 24, WINDOW_WIDTH // 2, 290, SCORE_COLOR, center=True)
-            draw_text(screen, f"Mode: {mode.upper()}", 20, WINDOW_WIDTH // 2, 330, (180, 180, 180), center=True)
-            draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 360, (180, 255, 180), center=True)
+            draw_text(screen, "Press ENTER to Play, P for Profile, E for Levels", 28, WINDOW_WIDTH // 2, 170, WHITE, center=True)
+            draw_text(screen, "S for Shop, C for Create, M to toggle mode", 22, WINDOW_WIDTH // 2, 210, WHITE, center=True)
+            draw_text(screen, f"Mode: {mode.upper()}", 20, WINDOW_WIDTH // 2, 260, (180, 180, 180), center=True)
+            draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 290, (180, 255, 180), center=True)
 
         elif game_state == "level_select":
             draw_text(screen, "SELECT LEVEL", 56, WINDOW_WIDTH // 2, 80, SCORE_COLOR, center=True)
@@ -547,6 +542,20 @@ def run_game() -> None:
                 color = SCORE_COLOR if idx == selected_level else (180, 180, 180)
                 draw_text(screen, f"{idx+1} - {lvl['name']}", 40, WINDOW_WIDTH // 2, 160 + idx*50, color, center=True)
             draw_text(screen, "Use LEFT/RIGHT to choose, ENTER to play, ESC to menu", 20, WINDOW_WIDTH // 2, 320, WHITE, center=True)
+
+        elif game_state == "profile":
+            draw_text(screen, "PROFILE", 56, WINDOW_WIDTH // 2, 80, SCORE_COLOR, center=True)
+            draw_text(screen, f"Name: {player_name}", 32, WINDOW_WIDTH // 2, 150, WHITE, center=True)
+            
+            # Show current icon
+            icon_size = 60
+            icon_x = WINDOW_WIDTH // 2 - icon_size // 2
+            pygame.draw.rect(screen, ICON_COLORS[selected_icon], (icon_x, 220, icon_size, icon_size), border_radius=8)
+            draw_text(screen, "Current Icon", 18, WINDOW_WIDTH // 2, 290, (180, 180, 180), center=True)
+            
+            draw_text(screen, f"★ Stars: {stars}", 32, WINDOW_WIDTH // 2, 330, SCORE_COLOR, center=True)
+            draw_text(screen, f"Coins: {coins}", 24, WINDOW_WIDTH // 2, 370, (180, 255, 180), center=True)
+            draw_text(screen, "Press ESC to return to menu", 20, WINDOW_WIDTH // 2, 370, WHITE, center=True)
 
         elif game_state == "shop":
             draw_text(screen, "SHOP", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
@@ -567,14 +576,7 @@ def run_game() -> None:
             sel_text = "Selected: {}".format("Owned" if selected_icon in unlocked_icons else "Locked")
             draw_text(screen, sel_text, 22, WINDOW_WIDTH // 2, 280, WHITE, center=True)
             if selected_icon in unlocked_icons:
-                draw_text(screen, "Press P or ENTER to return to menu and play", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
-            else:
-                draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} coins", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
-
-            sel_text = "Selected: {}".format("Owned" if selected_icon in unlocked_icons else "Locked")
-            draw_text(screen, sel_text, 22, WINDOW_WIDTH // 2, 280, WHITE, center=True)
-            if selected_icon in unlocked_icons:
-                draw_text(screen, "Press P or ENTER to return to menu and play", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
+                draw_text(screen, "Press P or ENTER to return to menu", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
             else:
                 draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} coins", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
 
