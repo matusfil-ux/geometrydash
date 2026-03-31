@@ -308,13 +308,12 @@ def run_game() -> None:
     """Launch and run the Geometry Dash game."""
     pygame.init()
     pygame.mixer.init()
-    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-    pygame.display.set_caption("Geometry Dash")
-    
-    # Update window dimensions to match fullscreen
+
+    # Start windowed; press F to toggle fullscreen
     global WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y
-    WINDOW_WIDTH, WINDOW_HEIGHT = screen.get_size()
-    GROUND_Y = WINDOW_HEIGHT - GROUND_HEIGHT
+    fullscreen = False
+    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+    pygame.display.set_caption("Geometry Dash")
     clock = pygame.time.Clock()
     
     death_sound = generate_death_sound()
