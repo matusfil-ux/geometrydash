@@ -1,462 +1,158 @@
-# 🎮 Geometry Dash — Python Game
+# 🎮 Geometry Dash — Python Edition
 
-**Version:** 0.1.0 · **Python:** 3.11+ · **Package manager:** [uv](https://github.com/astral-sh/uv) · **Framework:** [Toga](https://toga.readthedocs.io) + [BeeWare](https://beeware.org)
+A Geometry Dash clone written in **pure Python** using **pygame**.  
+Jump over spikes, collect coins, beat your high score and challenge friends on the leaderboard!
 
-> Jump over spikes, earn coins, unlock levels —  
-> then open `game.py` and make it even better!  
-> Runs on **Mac** and deploys to **iPhone / iPad** with one command.
-
----
-
-## 📋 Contents
-
-| # | What I want to do | Jump to |
-|---|---|---|
-| 1 | Install and run on Mac | [▶ Mac Quick Start](#1--mac-quick-start) |
-| 2 | Learn the controls | [🕹 How to Play](#2--how-to-play) |
-| 3 | Understand the files | [📁 Project Structure](#3--project-structure) |
-| 4 | Tweak and improve the game | [🎨 Improve the Game](#4--improve-the-game) |
-| 5 | Read the code | [🧭 Code Tour](#5--code-tour) |
-| 6 | Put it on iPhone or iPad | [📱 Deploy to iPhone / iPad](#6--deploy-to-iphone--ipad) |
-| 7 | Fix a problem | [🔍 Troubleshooting](#7--troubleshooting) |
+> **Branch guide**
+> | Branch | Runs on | Tech |
+> |--------|---------|------|
+> | `main`  | Mac · iPad / iPhone | Toga (BeeWare) |
+> | `pygame` | Mac · Windows · Linux | pygame |
 
 ---
 
-## 1 · Mac Quick Start
+## ✨ Features
 
-> ⏱ Takes about 5 minutes the first time.
+| Feature | Details |
+|---------|---------|
+| 🙋 Player name + colour | Pick your name and cube colour at startup |
+| 🌟 5 levels | Easy → Demon, increasing speed and spike density |
+| 💫 Particle FX | Glowing trail, jump burst, death explosion |
+| 🪙 Coins | Collect mid-air coins for bonus points |
+| 🏆 Leaderboard | Scores saved to `~/.geometrydash_scores.json` |
+| ⬛ Fullscreen | Press **F** to toggle |
+| 🎯 Double-jump | Two jumps before you must land |
 
-### Step 1 — Install `uv`
+---
 
-Open **Terminal** (`Cmd+Space` → type `Terminal` → Enter):
+## 🚀 Quick Start (Mac / Windows / Linux)
+
+### 1 — Prerequisites: Python + uv
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install uv (fast Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh   # Mac / Linux
+# Windows: powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Close and reopen Terminal, then check:
-
-```bash
-uv --version
-# → uv 0.x.x
-```
-
----
-
-### Step 2 — Clone the repo
+### 2 — Clone and set up
 
 ```bash
 git clone https://github.com/merck-gen/geometrydash
 cd geometrydash
+git checkout pygame          # ← this branch
+
+uv venv                      # creates .venv/
+source .venv/bin/activate    # Mac / Linux
+# Windows: .venv\Scripts\activate
+
+uv pip install -e .          # installs pygame from pyproject.toml
 ```
 
----
-
-### Step 3 — Create a virtual environment
-
-```bash
-uv venv
-source .venv/bin/activate
-```
-
-> 💡 `uv venv` automatically picks the latest installed Python.
-
----
-
-### Step 4 — Install dependencies
-
-```bash
-uv pip install -e .
-```
-
-> This installs **Toga** (the UI framework) and the game package itself.
-
----
-
-### Step 5 — Run the game 🚀
+### 3 — Run
 
 ```bash
 python -m geometrydash
 ```
 
-A window opens. **Tap or click anywhere to start!**
-
----
-
-### Every time you come back
+Or use the installed script:
 
 ```bash
-cd geometrydash
-source .venv/bin/activate
-python -m geometrydash
+geometrydash
 ```
 
 ---
 
-## 2 · How to Play
+## 🕹️ Controls
 
-### Controls
-
-| Touch / Click | Action |
-|---------------|--------|
-| **Tap left quarter** | Previous level |
-| **Tap right quarter** | Next level |
-| **Tap centre** | Start / Jump |
-
-> On Mac you can also click anywhere to jump during gameplay.
-
-### Screens
-
-| Screen | What to do |
-|--------|-----------|
-| **Menu** | Tap to go to level select |
-| **Level Select** | Tap left ◀ / right ▶ to browse, tap centre to play |
-| **Playing** | Tap / click to jump |
-| **Game Over** | Tap to return to menu |
-| **Level Complete** | Tap to return to menu |
-
-### 5 Levels
-
-| # | Name | Difficulty | Special |
-|---|------|-----------|---------|
-| 1 | Easy | 🟢 | double jump |
-| 2 | Medium | 🟡 | double jump |
-| 3 | Hard | 🟠 | double jump |
-| 4 | Insane | 🔴 | triple jump! |
-| 5 | Demon | 💀 | single jump only |
+| Key / Action | What it does |
+|---|---|
+| `Space` / `↑` / click | Jump (press again mid-air for double-jump) |
+| `← →` arrows on level select | Change level |
+| `R` on game over | Retry immediately |
+| `L` on menu | Open leaderboard |
+| `F` | Toggle fullscreen |
+| `ESC` | Pause / quit |
 
 ---
 
-## 3 · Project Structure
+## 🔧 How to Improve the Game
 
-```
-geometrydash/
-│
-├── pyproject.toml          ← project config + iOS/macOS settings
-├── LICENSE                 ← MIT license
-├── README.md               ← this file
-│
-└── src/
-    └── geometrydash/
-        ├── __init__.py     ← package version
-        ├── __main__.py     ← makes `python -m geometrydash` work
-        └── game.py         ← ⭐ THE WHOLE GAME — edit this!
-```
-
----
-
-## 4 · Improve the Game
-
-Open `game.py` in VS Code:
-
-```bash
-code src/geometrydash/game.py
-```
-
-Find the **SETTINGS block** near the top. After each change: save (`Cmd+S`), then run again.
-
----
-
-### 🟢 Easy — Change the player color
-
-Colors use hex `#RRGGBB` format:
+All the interesting settings are at the **top of `src/geometrydash/game.py`**:
 
 ```python
-PLAYER_COLOR = "#00C7FF"   # cyan (default)
-```
+# ── CONFIG ─────────────────────────────────────────────
+GRAVITY    = 0.7     # bigger = heavier (try 0.4 for moon)
+JUMP_VEL   = -15.0   # more negative = higher jump
+MAX_JUMPS  = 2       # 1 = single jump, 3 = triple jump
 
-Try these:
-```python
-PLAYER_COLOR = "#FF6400"   # orange
-PLAYER_COLOR = "#63FF63"   # green
-PLAYER_COLOR = "#FF00FF"   # magenta
-PLAYER_COLOR = "#FFD700"   # gold
-```
+PLAYER_COLORS = [
+    (0, 200, 255),    # cyan   ← add your colour here!
+    (255, 100, 200),  # pink
+    ...
+]
 
----
-
-### 🟢 Easy — Change obstacle color
-
-```python
-OBSTACLE_COLOR = "#FF4F4F"   # red (default)
-OBSTACLE_COLOR = "#FFCC00"   # yellow
-OBSTACLE_COLOR = "#FF8C00"   # dark orange
-```
-
----
-
-### 🟡 Medium — Change physics
-
-```python
-JUMP_VELOCITY = 0.022   # bigger = higher jump  (try 0.030 for moon jump)
-GRAVITY       = 0.0012  # bigger = falls faster  (try 0.0006 for floaty)
-```
-
----
-
-### 🟡 Medium — Change level difficulty
-
-```python
 LEVELS = [
-    {"name": "Level 1 · Easy", "speed": 0.006, "min_gap": 90, "max_gap": 150, "duration": 60},
+    {"name": "Level 1 · Easy", "speed": 4, "min_gap": 75, ...},
+    # Add a new level here!
 ]
 ```
 
-| Setting | What it does |
-|---------|-------------|
-| `speed` | Fraction of screen width moved per frame (bigger = faster) |
-| `min_gap` / `max_gap` | Frames between obstacles (smaller = harder) |
-| `duration` | Seconds you need to survive to win |
+### Ideas for Filip to try 💡
+
+1. **Add a new level** — copy a row in `LEVELS` and change `speed` and `min_gap`
+2. **Moon gravity** — set `GRAVITY = 0.3` and `JUMP_VEL = -20`
+3. **New obstacle shape** — edit `_draw_obstacles()`, draw a rectangle instead of a triangle
+4. **Background music** — put an `.mp3` file next to `game.py` and add:
+   ```python
+   pygame.mixer.music.load("music.mp3")
+   pygame.mixer.music.play(-1)
+   ```
+5. **Change the window size** — edit `WIDTH, HEIGHT = 900, 500` at the top
+6. **Add a new player colour** — append `(R, G, B)` to `PLAYER_COLORS`
 
 ---
 
-### 🟠 Medium — Add a new level
-
-Append to the `LEVELS` list:
-
-```python
-{"name": "Level 6 · My Level", "speed": 0.011, "min_gap": 40, "max_gap": 80, "duration": 55},
-```
-
----
-
-### 🔴 Hard — Change background color
-
-```python
-BG_COLOR = "#1E1E33"   # dark blue (default)
-BG_COLOR = "#000000"   # pure black
-BG_COLOR = "#0D1F0D"   # dark green
-```
-
----
-
-## 5 · Code Tour
+## 📁 Project Structure
 
 ```
-game.py
-│
-├── SETTINGS block              ← start here — colors, speed, gravity, levels
-│
-└── class GeometryDashApp       ← THE WHOLE GAME ⭐
-    │
-    ├── startup()               ← create window, canvas, start game loop
-    ├── _init_state()           ← set up coins, high score, call _reset_round
-    ├── _reset_round()          ← reset player/obstacles for a new round
-    ├── _game_loop()            ← async loop: update + draw 60× per second
-    ├── _on_press()             ← tap/click input (works on iPhone too!)
-    ├── _jump()                 ← fires on tap during gameplay
-    ├── _update()               ← move everything, check collisions, timer
-    └── _draw()                 ← draw background, ground, spikes, player, UI
-```
-
-### The Game Loop (60 times per second)
-
-```
-_game_loop() →
-    1. _update()  ← move player + obstacles, check collisions
-    2. _draw()    ← clear canvas, draw everything
-    await asyncio.sleep(1/60)  ← wait for next frame
-```
-
-### How Toga drawing works
-
-```python
-with canvas.fill(color="#FF0000") as f:    # set fill color to red
-    f.rect(x, y, width, height)           # draw a filled rectangle
-    f.move_to(x1, y1)                     # start a triangle
-    f.line_to(x2, y2)
-    f.line_to(x3, y3)
-    f.close_path()                        # fills the triangle
-
-with canvas.stroke(color="#FFFFFF", line_width=2) as s:
-    s.move_to(x1, y1)
-    s.line_to(x2, y2)                    # draws a line
+geometrydash/
+├── src/
+│   └── geometrydash/
+│       ├── __init__.py
+│       ├── __main__.py   ← entry point
+│       └── game.py       ← ALL the game code lives here
+├── pyproject.toml        ← dependencies (pygame)
+└── README.md
 ```
 
 ---
 
-## 6 · Deploy to iPhone / iPad
-
-> 🍎 Turn your Python game into a real iPhone/iPad app using **BeeWare Briefcase**.  
-> You need a **free Apple ID** — no $99/year developer account required.
-
----
-
-### What you need (one-time setup)
-
-| Tool | How to get it |
-|------|--------------|
-| **Xcode** (~9 GB) | Mac App Store → search Xcode → Install |
-| **iOS Runtime** | Xcode prompts automatically |
-| **Apple ID** | Any Apple ID |
-| **briefcase** | `uv pip install briefcase` (see below) |
-
----
-
-### Step 1 — Install Xcode and agree to license
+## 🛠️ Development Commands
 
 ```bash
-# Install from Mac App Store first, then:
-xcode-select --install
-sudo xcodebuild -license accept
-```
-
----
-
-### Step 2 — Sign in with Apple ID in Xcode
-
-1. Open **Xcode** → menu **Xcode** → **Settings** → **Accounts** tab
-2. Click **+** → **Apple ID** → sign in
-
----
-
-### Step 3 — Install briefcase
-
-```bash
-cd geometrydash
-source .venv/bin/activate
-uv pip install briefcase
-```
-
----
-
-### Step 4 — Create the Xcode project
-
-```bash
-briefcase create iOS
-```
-
----
-
-### Step 5 — Open in Xcode
-
-```bash
-open "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"
-```
-
----
-
-### Step 6 — Connect your iPhone or iPad
-
-1. Plug in with USB cable
-2. Tap **Trust** on the device when prompted
-
----
-
-### Step 7 — Select device and fix signing
-
-1. Xcode top bar → click device selector → pick your device
-2. Left panel → click **Geometry Dash** project (blue icon)
-3. **Signing & Capabilities** tab → **Team** → **Add an Account...** → sign in with Apple ID
-4. Select your personal team
-
----
-
-### Step 8 — Build and run 🚀
-
-Press **`Cmd+R`** → app installs on device and launches!
-
----
-
-### Step 9 — Trust the developer (first time on device)
-
-On iPhone/iPad:
-1. **Settings** → **General** → **VPN & Device Management**
-2. Tap your Apple ID → **Trust** → **Trust** again
-
-Then open the app from home screen — it runs! 🎉
-
----
-
-### After code changes
-
-```bash
-briefcase update iOS
-```
-Then `Cmd+R` in Xcode.
-
----
-
-### Quick reference — iOS deploy
-
-| Task | Command |
-|------|---------|
-| Install briefcase | `uv pip install briefcase` |
-| Create Xcode project | `briefcase create iOS` |
-| Open in Xcode | `open "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"` |
-| Build & run | `Cmd+R` in Xcode |
-| Update after code change | `briefcase update iOS` → `Cmd+R` |
-
----
-
-## 7 · Troubleshooting
-
----
-
-### ❌ `ModuleNotFoundError: No module named 'toga'`
-
-```bash
-source .venv/bin/activate
-uv pip install -e .
+# Run the game
 python -m geometrydash
+
+# Install / update dependencies
+uv pip install -e .
+
+# Add a new package (example)
+uv pip install requests
+
+# Check what's installed
+uv pip list
 ```
 
 ---
 
-### ❌ `uv: command not found`
+## 📦 Requirements
 
-Close Terminal, reopen, and try again. If still missing:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+- Python ≥ 3.11
+- pygame ≥ 2.5  _(installed automatically via `uv pip install -e .`)_
 
 ---
 
-### ❌ No Python found by uv
+## 📝 License
 
-```bash
-brew install python@3.12
-uv venv
-```
-
----
-
-### ❌ Xcode — `This Apple account cannot be used for development`
-
-You need admin rights. Try:
-```bash
-sudo open -a Xcode "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"
-```
-
----
-
-### ❌ iPhone shows "Untrusted Developer"
-
-**Settings** → **General** → **VPN & Device Management** → tap Apple ID → **Trust**
-
----
-
-### ❌ Window opens but nothing appears
-
-Click on the window once to give it focus, then try again.
-
----
-
-## 🔗 Quick Reference
-
-| Task | Command |
-|------|---------|
-| Create venv | `uv venv` |
-| Activate venv | `source .venv/bin/activate` |
-| Install game | `uv pip install -e .` |
-| **Run the game** | `python -m geometrydash` |
-| Edit the game | `code src/geometrydash/game.py` |
-| iOS: install briefcase | `uv pip install briefcase` |
-| iOS: create Xcode project | `briefcase create iOS` |
-| iOS: open in Xcode | `open "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"` |
-| iOS: build & run | `Cmd+R` in Xcode |
-| iOS: update after changes | `briefcase update iOS` → `Cmd+R` |
-
----
-
-> 🚀 **Beat Level 5 Demon — then deploy it to your iPhone and show your friends!**
+MIT — do whatever you want with it. Have fun! 🎉

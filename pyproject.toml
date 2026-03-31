@@ -1,11 +1,11 @@
 [project]
 name = "geometrydash"
-version = "0.1.0"
-description = "A simple Geometry Dash game in Python"
+version = "0.2.0"
+description = "Geometry Dash game in Python — pygame edition"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "toga>=0.4.5",
+    "pygame>=2.5",
 ]
 
 [project.scripts]
@@ -17,36 +17,3 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-# ── BeeWare Briefcase ──────────────────────────────────────────────────────────
-[tool.briefcase]
-project_name = "Geometry Dash"
-bundle = "com.filip.geometrydash"
-version = "0.1.0"
-url = "https://github.com/merck-gen/geometrydash"
-license.file = "LICENSE"
-author = "Filip"
-author_email = "filip@example.com"
-
-[tool.briefcase.app.geometrydash]
-formal_name = "Geometry Dash"
-description = "Jump over spikes, earn coins, build levels!"
-sources = ["src/geometrydash"]
-# toga is a pure-Python wheel — pip installs it on every platform
-requires = [
-    "toga>=0.4.5",
-]
-
-[tool.briefcase.app.geometrydash.macOS]
-requires = [
-    "toga>=0.4.5",
-    "toga-cocoa>=0.4.5",
-]
-
-[tool.briefcase.app.geometrydash.iOS]
-# toga-iOS is pure Python — installs fine on iOS via briefcase
-requires = [
-    "toga>=0.4.5",
-    "toga-iOS>=0.4.5",
-]
-minimum_os_version = "16.0"
