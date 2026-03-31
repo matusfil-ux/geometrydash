@@ -5,6 +5,7 @@ Summary: A simple Geometry Dash game in Python
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: pygame>=2.5.0
+Requires-Dist: numpy>=1.24.0
 
 # Geometry Dash 🎮 — Python Game
 
