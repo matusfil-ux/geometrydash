@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "A simple Geometry Dash game in Python"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+#    "pygame-ce>=2.5.0",
+#    "numpy>=1.24.0",
+]
 
 [project.scripts]
 geometrydash = "geometrydash.game:main"
@@ -17,11 +20,6 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 # ── BeeWare Briefcase iOS config ──────────────────────────────────────────────
-# NOTE: dependencies = [] is intentional.
-# briefcase merges [project].dependencies into iOS requirements — but pygame-ce
-# has no iOS wheels. Install manually for Mac dev:
-#   uv pip install pygame-ce numpy
-#   uv pip install -e .
 
 [tool.briefcase]
 project_name = "Geometry Dash"
@@ -45,5 +43,8 @@ requires = [
 ]
 
 [tool.briefcase.app.geometrydash.iOS]
-requires = []
+requires = [
+#    "pygame",
+]
 minimum_os_version = "16.0"
+#support_package = "https://briefcase-support.s3.amazonaws.com/python/3.11/iOS/Python-3.11-iOS-support.b2.tar.gz"
