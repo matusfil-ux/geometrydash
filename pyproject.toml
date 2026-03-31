@@ -16,11 +16,11 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-# ── BeeWare Briefcase iOS config ──────────────────────────────────────────────
+# ── BeeWare Briefcase config ───────────────────────────────────────────────────
 # NOTE: dependencies = [] is intentional.
-# briefcase merges [project].dependencies into iOS requirements — but pygame-ce
-# has no iOS wheels. Install manually for Mac dev:
-#   uv pip install pygame-ce numpy
+# briefcase merges [project].dependencies into platform requirements — but
+# Kivy wheels differ per platform. Install manually for Mac dev:
+#   uv pip install kivy
 #   uv pip install -e .
 
 [tool.briefcase]
@@ -40,10 +40,11 @@ requires = []
 
 [tool.briefcase.app.geometrydash.macOS]
 requires = [
-    "pygame-ce>=2.5.0",
-    "numpy>=1.24.0",
+    "kivy[base]>=2.3.0",
 ]
 
 [tool.briefcase.app.geometrydash.iOS]
-requires = []
+requires = [
+    "kivy",
+]
 minimum_os_version = "16.0"

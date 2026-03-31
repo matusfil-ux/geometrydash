@@ -1,798 +1,393 @@
 """
-Geometry Dash — Simple Python Game
-====================================
-A simple Geometry Dash clone using pygame.
+Geometry Dash — Kivy Version
+============================
+Runs on Mac, iPhone, and iPad using Kivy.
 
 How to play:
-  - Press SPACE or click the mouse to jump
+  - Tap / click / press SPACE to jump
   - Avoid the spikes!
-  - Every spike you pass = +1 score
+  - Survive the timer to complete the level
 
-How to improve (ideas for you!):
+How to improve:
   - Change PLAYER_COLOR to your favourite color
-  - Change GRAVITY to make the jump higher or lower
-  - Add a double-jump feature
-  - Make the game faster over time
-  - Add more obstacle shapes
-  - Add sound effects with pygame.mixer
+  - Change GRAVITY to adjust jump feel
+  - Change LEVELS to add new levels
+  - Add new obstacle types in the Obstacle class
 """
 
 import math
 import random
-import sys
 
-import pygame
-
-try:
-    import numpy as np
-    _NUMPY_AVAILABLE = True
-except ImportError:
-    _NUMPY_AVAILABLE = False
+from kivy.app import App
+from kivy.clock import Clock
+from kivy.core.window import Window
+from kivy.graphics import Color, Ellipse, Line, Rectangle, Triangle
+from kivy.uix.widget import Widget
+from kivy.core.text import Label as CoreLabel
+from kivy.graphics.texture import Texture
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SETTINGS — change these to tweak the game!
+# SETTINGS
 # ─────────────────────────────────────────────────────────────────────────────
 
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 400
 FPS = 60
 
-# Colors  (Red, Green, Blue)  — values 0-255
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-BACKGROUND_COLOR = (30, 30, 50)       # dark blue-ish background
-GROUND_COLOR = (80, 80, 120)
-PLAYER_COLOR = (0, 200, 255)          # cyan — change this!
-OBSTACLE_COLOR = (255, 80, 80)        # red spikes
-SCORE_COLOR = (255, 255, 100)         # yellow text
+# Colors (R, G, B, A) — values 0.0 to 1.0
+BG_COLOR        = (0.12, 0.12, 0.20, 1)
+GROUND_COLOR    = (0.31, 0.31, 0.47, 1)
+PLAYER_COLOR    = (0.0,  0.78, 1.0,  1)   # cyan — change this!
+OBSTACLE_COLOR  = (1.0,  0.31, 0.31, 1)   # red
+SCORE_COLOR     = (1.0,  1.0,  0.39, 1)   # yellow
+WHITE           = (1.0,  1.0,  1.0,  1)
+LINE_COLOR      = (0.20, 0.20, 0.31, 1)
 
-GROUND_HEIGHT = 60                    # height of the ground strip at the bottom
-GROUND_Y = WINDOW_HEIGHT - GROUND_HEIGHT  # y position of the ground top edge
+GROUND_HEIGHT_RATIO = 0.15   # fraction of window height
+PLAYER_SIZE_RATIO   = 0.10   # fraction of window height
+PLAYER_X_RATIO      = 0.15   # fraction of window width
 
-# Player settings
-PLAYER_SIZE = 40                      # square side length in pixels
-PLAYER_X = 120                        # fixed horizontal position
-JUMP_VELOCITY = -14                   # negative = upward  (try -10 to -18)
-GRAVITY = 0.7                         # how fast the player falls (try 0.4 to 1.0)
+JUMP_VELOCITY   = 0.022      # fraction of window height per frame
+GRAVITY         = 0.0012     # fraction of window height per frame²
 
-# Obstacle settings
-OBSTACLE_WIDTH = 30
-OBSTACLE_HEIGHT = 50
-OBSTACLE_SPEED = 6                    # pixels per frame (increase for harder game)
-OBSTACLE_MIN_GAP = 60                 # minimum frames between obstacles
-OBSTACLE_MAX_GAP = 120                # maximum frames between obstacles
+OBSTACLE_WIDTH_RATIO  = 0.04
+OBSTACLE_HEIGHT_RATIO = 0.13
 
-# Game mode settings
-GAME_MODES = ("classic", "wave", "gravity")
-HARDER_SPIKE_CHANCE = 0.35            # chance to create a second nearby spike
-WAVE_OBSTACLE_AMPLITUDE = 80         # vertical movement amplitude for wave mode
-WAVE_OBSTACLE_FREQUENCY = 0.02       # speed of vertical oscillation
-GRAVITY_CHANGE_INTERVAL = 300        # frames (5 seconds at 60 FPS)
-GRAVITY_MIN = 0.3
-GRAVITY_MAX = 1.2
-
-# shop settings
-ICON_COLORS = [
-    (0, 200, 255),   # default cyan
-    (255, 100, 100), # red
-    (100, 255, 100), # green
-    (255, 255, 100), # yellow
-    (255, 0, 255),   # magenta
-]
-UNLOCK_COST = 100
-
-# Level settings
 LEVELS = [
-    {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "score_to_next": 9999, "block_chance": 0, "duration": 80},
-    {"name": "Level 2 - Medium", "speed": 7, "min_gap": 70, "max_gap": 120, "score_to_next": 9999, "block_chance": 0.05, "duration": 80},
-    {"name": "Level 3 - Hard", "speed": 11, "min_gap": 35, "max_gap": 65, "score_to_next": 9999, "block_chance": 0.1, "duration": 60},
-    {"name": "Level 4 - Insane Ride", "speed": 12, "min_gap": 25, "max_gap": 50, "score_to_next": 9999, "block_chance": 0.4, "duration": 60},
-    {"name": "Level 5 - Demon Ride", "speed": 5, "min_gap": 20, "max_gap": 40, "score_to_next": 9999, "block_chance": 0.5, "duration": 45},
+    {"name": "Level 1 · Easy",        "speed": 0.006, "min_gap": 90,  "max_gap": 150, "duration": 60},
+    {"name": "Level 2 · Medium",       "speed": 0.009, "min_gap": 70,  "max_gap": 120, "duration": 60},
+    {"name": "Level 3 · Hard",         "speed": 0.013, "min_gap": 35,  "max_gap": 65,  "duration": 50},
+    {"name": "Level 4 · Insane",       "speed": 0.015, "min_gap": 25,  "max_gap": 50,  "duration": 45},
+    {"name": "Level 5 · Demon Ride",   "speed": 0.007, "min_gap": 20,  "max_gap": 40,  "duration": 40},
 ]
 
-# Editor settings
-EDITOR_GRID_X = (100, WINDOW_WIDTH - 100)
-EDITOR_GRID_Y = (GROUND_Y - 220, GROUND_Y - 40)
-EDITOR_CELL_SIZE = 20
-EDITOR_FRAMES_PER_PIXEL = 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPER — draw text onto canvas
+# ─────────────────────────────────────────────────────────────────────────────
+
+def make_label_texture(text: str, font_size: int, color=(1, 1, 1, 1)) -> Texture:
+    label = CoreLabel(text=text, font_size=font_size, bold=True,
+                      color=color, font_name="Roboto")
+    label.refresh()
+    return label.texture
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PLAYER
+# GAME WIDGET
 # ─────────────────────────────────────────────────────────────────────────────
 
-class Player:
-    """The player — a square that jumps over obstacles."""
+class GameWidget(Widget):
 
-    def __init__(self) -> None:
-        self.x = PLAYER_X
-        self.y = float(GROUND_Y - PLAYER_SIZE)
-        self.velocity_y = 0.0
-        self.on_ground = True
-        self.angle = 0.0
-        self.color = PLAYER_COLOR
-        self.max_jumps = 2
-        self.available_jumps = 2
+    # ── init ──────────────────────────────────────────────────────────────────
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.state = "menu"      # menu | level_select | playing | gameover | complete
+        self.selected_level = 0
+        self.coins = 0
+        self.high_score = 0
+        self._tick_event = None
+        self._reset_game()
+        self._bind_keyboard()
+        self._schedule_tick()
 
-    def reset(self) -> None:
-        """Put the player back at the starting position."""
-        self.x = PLAYER_X
-        self.y = float(GROUND_Y - PLAYER_SIZE)
-        self.velocity_y = 0.0
-        self.on_ground = True
-        self.angle = 0.0
-        self.max_jumps = 2
-        self.available_jumps = 2
+    def _bind_keyboard(self):
+        Window.bind(on_key_down=self._on_key_down)
 
-    def jump(self) -> None:
-        """Make the player jump (can jump on ground or multi-jump in the air)."""
+    def _schedule_tick(self):
+        if self._tick_event:
+            self._tick_event.cancel()
+        self._tick_event = Clock.schedule_interval(self._tick, 1.0 / FPS)
+
+    # ── reset ─────────────────────────────────────────────────────────────────
+    def _reset_game(self):
+        w, h = Window.width, Window.height
+        self.ground_y    = h * GROUND_HEIGHT_RATIO
+        self.player_size = h * PLAYER_SIZE_RATIO
+        self.player_x    = w * PLAYER_X_RATIO
+        self.player_y    = self.ground_y
+        self.vel_y       = 0.0
+        self.on_ground   = True
+        self.angle       = 0.0
+        self.max_jumps   = 2
+        self.jumps_left  = 2
+        self.obstacles   = []          # list of {x, base_y}
+        self.score       = 0
+        self.level_timer = 0           # frames elapsed
+        self.frames_until_next = LEVELS[self.selected_level]["min_gap"]
+        self.rng         = random.Random()
+
+    # ── keyboard ──────────────────────────────────────────────────────────────
+    def _on_key_down(self, window, key, scancode, codepoint, modifier):
+        K_SPACE  = 32
+        K_RETURN = 13
+        K_LEFT   = 276
+        K_RIGHT  = 275
+        K_ESCAPE = 27
+        K_r      = 114
+
+        if self.state == "menu":
+            if key == K_RETURN:
+                self.state = "level_select"
+        elif self.state == "level_select":
+            if key == K_LEFT:
+                self.selected_level = (self.selected_level - 1) % len(LEVELS)
+            elif key == K_RIGHT:
+                self.selected_level = (self.selected_level + 1) % len(LEVELS)
+            elif key == K_RETURN:
+                self._start_level()
+            elif key == K_ESCAPE:
+                self.state = "menu"
+        elif self.state == "playing":
+            if key == K_SPACE:
+                self._jump()
+        elif self.state in ("gameover", "complete"):
+            if key == K_r:
+                self._reset_game()
+                self._start_level()
+            elif key == K_SPACE or key == K_RETURN:
+                self.state = "menu"
+
+    def _start_level(self):
+        lvl = LEVELS[self.selected_level]
+        self.max_jumps = 3 if self.selected_level == 3 else (1 if self.selected_level == 4 else 2)
+        self._reset_game()
+        self.state = "playing"
+
+    # ── touch ─────────────────────────────────────────────────────────────────
+    def on_touch_down(self, touch):
+        if self.state == "menu":
+            self.state = "level_select"
+        elif self.state == "level_select":
+            w = Window.width
+            # left half = prev, right half = next; center = start
+            tx = touch.x
+            if tx < w * 0.25:
+                self.selected_level = (self.selected_level - 1) % len(LEVELS)
+            elif tx > w * 0.75:
+                self.selected_level = (self.selected_level + 1) % len(LEVELS)
+            else:
+                self._start_level()
+        elif self.state == "playing":
+            self._jump()
+        elif self.state in ("gameover", "complete"):
+            self.state = "menu"
+        return True
+
+    # ── jump ──────────────────────────────────────────────────────────────────
+    def _jump(self):
+        h = Window.height
         if self.on_ground:
-            self.velocity_y = JUMP_VELOCITY
+            self.vel_y = JUMP_VELOCITY * h
             self.on_ground = False
-            self.available_jumps = self.max_jumps - 1
-        elif self.available_jumps > 0:
-            self.velocity_y = JUMP_VELOCITY
-            self.available_jumps -= 1
+            self.jumps_left = self.max_jumps - 1
+        elif self.jumps_left > 0:
+            self.vel_y = JUMP_VELOCITY * h
+            self.jumps_left -= 1
 
-    def update(self, gravity: float = GRAVITY) -> None:
-        """Move the player each frame."""
-        self.velocity_y += gravity
-        self.y += self.velocity_y
+    # ── collision ─────────────────────────────────────────────────────────────
+    def _player_rect(self):
+        m = self.player_size * 0.1
+        return (self.player_x + m, self.player_y + m,
+                self.player_size - 2*m, self.player_size - 2*m)
 
+    def _obs_rect(self, obs):
+        w  = Window.width  * OBSTACLE_WIDTH_RATIO
+        h  = Window.height * OBSTACLE_HEIGHT_RATIO
+        mx = w * 0.15
+        return (obs["x"] + mx, obs["base_y"], w - 2*mx, h * 0.6)
+
+    @staticmethod
+    def _rects_overlap(r1, r2):
+        x1, y1, w1, h1 = r1
+        x2, y2, w2, h2 = r2
+        return x1 < x2+w2 and x1+w1 > x2 and y1 < y2+h2 and y1+h1 > y2
+
+    # ── tick (game loop) ──────────────────────────────────────────────────────
+    def _tick(self, dt):
+        if self.state == "playing":
+            self._update()
+        self._draw()
+
+    def _update(self):
+        w, h   = Window.width, Window.height
+        level  = LEVELS[self.selected_level]
+        speed  = level["speed"] * w
+
+        # player physics
+        self.vel_y   -= GRAVITY * h
+        self.player_y += self.vel_y
         if not self.on_ground:
             self.angle -= 5
 
-        if self.y >= GROUND_Y - PLAYER_SIZE:
-            self.y = float(GROUND_Y - PLAYER_SIZE)
-            self.velocity_y = 0.0
+        if self.player_y <= self.ground_y:
+            self.player_y  = self.ground_y
+            self.vel_y     = 0.0
             self.on_ground = True
-            self.available_jumps = self.max_jumps
-            self.angle = 0.0
+            self.jumps_left = self.max_jumps
+            self.angle     = 0.0
 
-    def get_rect(self) -> pygame.Rect:
-        """Return the collision box (slightly smaller for fairness)."""
-        margin = 4
-        return pygame.Rect(
-            self.x + margin,
-            int(self.y) + margin,
-            PLAYER_SIZE - margin * 2,
-            PLAYER_SIZE - margin * 2,
-        )
+        # spawn obstacles
+        self.frames_until_next -= 1
+        if self.frames_until_next <= 0:
+            self.obstacles.append({"x": w + 10, "base_y": self.ground_y, "passed": False})
+            if self.rng.random() < 0.3 and self.selected_level != 4:
+                ow = w * OBSTACLE_WIDTH_RATIO
+                self.obstacles.append({"x": w + 10 + ow + 10, "base_y": self.ground_y, "passed": False})
+            self.frames_until_next = self.rng.randint(level["min_gap"], level["max_gap"])
 
-    def draw(self, screen: pygame.Surface) -> None:
-        """Draw the spinning cube on screen."""
-        cube_surf = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE), pygame.SRCALPHA)
-        pygame.draw.rect(cube_surf, self.color, (0, 0, PLAYER_SIZE, PLAYER_SIZE), border_radius=4)
-        pygame.draw.line(cube_surf, WHITE, (PLAYER_SIZE // 2, 4), (PLAYER_SIZE // 2, PLAYER_SIZE - 4), 2)
-        pygame.draw.line(cube_surf, WHITE, (4, PLAYER_SIZE // 2), (PLAYER_SIZE - 4, PLAYER_SIZE // 2), 2)
-        rotated = pygame.transform.rotate(cube_surf, self.angle)
-        rect = rotated.get_rect(center=(self.x + PLAYER_SIZE // 2, int(self.y) + PLAYER_SIZE // 2))
-        screen.blit(rotated, rect)
+        # move obstacles
+        for obs in self.obstacles:
+            obs["x"] -= speed
+            if not obs["passed"] and obs["x"] + w * OBSTACLE_WIDTH_RATIO < self.player_x:
+                obs["passed"] = True
+                self.score += 1
+                self.coins += 1
 
+        # remove off-screen
+        self.obstacles = [o for o in self.obstacles if o["x"] + w * OBSTACLE_WIDTH_RATIO > 0]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# OBSTACLE (spike)
-# ─────────────────────────────────────────────────────────────────────────────
+        # collision detection
+        pr = self._player_rect()
+        for obs in self.obstacles:
+            if self._rects_overlap(pr, self._obs_rect(obs)):
+                if self.score > self.high_score:
+                    self.high_score = self.score
+                self.state = "gameover"
+                return
 
-class Obstacle:
-    """A spike that scrolls from right to left."""
+        # level timer
+        self.level_timer += 1
+        duration = level["duration"]
+        if self.level_timer >= FPS * duration:
+            if self.score > self.high_score:
+                self.high_score = self.score
+            self.state = "complete"
 
-    def __init__(self, x: int, base_y: int = GROUND_Y, width: int = OBSTACLE_WIDTH, height: int = OBSTACLE_HEIGHT) -> None:
-        self.x = x
-        self.base_y = base_y
-        self.width = width
-        self.height = height
-        self.passed = False
-        self.speed = OBSTACLE_SPEED
+    # ── draw ──────────────────────────────────────────────────────────────────
+    def _draw(self):
+        w, h = Window.width, Window.height
+        self.canvas.clear()
 
-    def update(self) -> None:
-        """Move the obstacle to the left."""
-        self.x -= self.speed
+        with self.canvas:
+            # Background
+            Color(*BG_COLOR)
+            Rectangle(pos=(0, 0), size=(w, h))
 
-    def is_offscreen(self) -> bool:
-        """True if the obstacle has scrolled past the left edge."""
-        return self.x + self.width < 0
+            # Scrolling lines (decorative)
+            Color(*LINE_COLOR)
+            for i in range(0, w + 200, 200):
+                x_off = (self.level_timer * 3) % 200
+                lx = i - x_off
+                Line(points=[lx - 200, 0, lx, h * 0.85], width=1)
 
-    def get_rect(self) -> pygame.Rect:
-        """Return the collision box (the lower 60% of the spike for fairness)."""
-        margin_x = 4
-        return pygame.Rect(
-            self.x + margin_x,
-            self.base_y - int(self.height * 0.6),
-            self.width - margin_x * 2,
-            int(self.height * 0.6),
-        )
+            # Ground
+            Color(*GROUND_COLOR)
+            Rectangle(pos=(0, 0), size=(w, self.ground_y))
+            Color(0.47, 0.47, 0.70, 1)
+            Line(points=[0, self.ground_y, w, self.ground_y], width=2)
 
-    def draw(self, screen: pygame.Surface) -> None:
-        """Draw a triangle spike."""
-        tip = (self.x + self.width // 2, self.base_y - self.height)
-        bottom_left = (self.x, self.base_y)
-        bottom_right = (self.x + self.width, self.base_y)
-        pygame.draw.polygon(screen, OBSTACLE_COLOR, [tip, bottom_left, bottom_right])
-        pygame.draw.polygon(screen, BLACK, [tip, bottom_left, bottom_right], 2)
+            # Obstacles (triangles)
+            ow = w * OBSTACLE_WIDTH_RATIO
+            oh = h * OBSTACLE_HEIGHT_RATIO
+            Color(*OBSTACLE_COLOR)
+            for obs in self.obstacles:
+                ox, oy = obs["x"], obs["base_y"]
+                tip = (ox + ow / 2, oy + oh)
+                bl  = (ox, oy)
+                br  = (ox + ow, oy)
+                Triangle(points=[tip[0], tip[1], bl[0], bl[1], br[0], br[1]])
+                Color(0, 0, 0, 1)
+                Line(points=[tip[0], tip[1], bl[0], bl[1], br[0], br[1], tip[0], tip[1]], width=1.5)
+                Color(*OBSTACLE_COLOR)
 
+            # Player (rotated square drawn as lines)
+            ps   = self.player_size
+            px   = self.player_x
+            py   = self.player_y
+            cx   = px + ps / 2
+            cy   = py + ps / 2
+            ang  = math.radians(self.angle)
+            corners = [(-ps/2, -ps/2), (ps/2, -ps/2), (ps/2, ps/2), (-ps/2, ps/2)]
+            rotated = []
+            for rx, ry in corners:
+                rr = math.sqrt(rx*rx + ry*ry)
+                a  = math.atan2(ry, rx) + ang
+                rotated.append((cx + rr*math.cos(a), cy + rr*math.sin(a)))
+            Color(*PLAYER_COLOR)
+            pts = []
+            for vx, vy in rotated:
+                pts += [vx, vy]
+            pts += [rotated[0][0], rotated[0][1]]
+            # fill
+            # Use a quad approximation: draw as 4-point polygon via two triangles
+            r = rotated
+            Triangle(points=[r[0][0], r[0][1], r[1][0], r[1][1], r[2][0], r[2][1]])
+            Triangle(points=[r[0][0], r[0][1], r[2][0], r[2][1], r[3][0], r[3][1]])
+            # outline
+            Color(1, 1, 1, 0.6)
+            Line(points=pts, width=1.5)
+            # cross
+            mid_top    = ((r[0][0]+r[1][0])/2, (r[0][1]+r[1][1])/2)
+            mid_bottom = ((r[2][0]+r[3][0])/2, (r[2][1]+r[3][1])/2)
+            mid_left   = ((r[0][0]+r[3][0])/2, (r[0][1]+r[3][1])/2)
+            mid_right  = ((r[1][0]+r[2][0])/2, (r[1][1]+r[2][1])/2)
+            Line(points=[mid_top[0], mid_top[1], mid_bottom[0], mid_bottom[1]], width=1)
+            Line(points=[mid_left[0], mid_left[1], mid_right[0], mid_right[1]], width=1)
 
-class WaveObstacle(Obstacle):
-    """Dynamic wave spike for wave mode."""
+        # ── UI overlays ───────────────────────────────────────────────────────
+        with self.canvas:
+            if self.state == "menu":
+                self._blit_text("GEOMETRY DASH", int(h*0.10), SCORE_COLOR, w/2, h*0.70, center=True)
+                self._blit_text("TAP to continue", int(h*0.04), WHITE, w/2, h*0.55, center=True)
+                self._blit_text(f"Coins: {self.coins}   Best: {self.high_score}", int(h*0.035), WHITE, w/2, h*0.45, center=True)
 
-    def __init__(self, x: int, phase: float) -> None:
-        super().__init__(x)
-        self.phase = phase
+            elif self.state == "level_select":
+                self._blit_text("SELECT LEVEL", int(h*0.07), SCORE_COLOR, w/2, h*0.80, center=True)
+                self._blit_text("◀ TAP LEFT/RIGHT to browse ▶   TAP CENTRE to play", int(h*0.035), WHITE, w/2, h*0.70, center=True)
+                for i, lvl in enumerate(LEVELS):
+                    col = SCORE_COLOR if i == self.selected_level else WHITE
+                    size_f = 0.055 if i == self.selected_level else 0.040
+                    self._blit_text(f"{'▶ ' if i == self.selected_level else '  '}{lvl['name']}", int(h*size_f), col,
+                                    w/2, h*(0.58 - i*0.10), center=True)
 
-    def update(self) -> None:
-        self.x -= OBSTACLE_SPEED
-        self.phase += WAVE_OBSTACLE_FREQUENCY
-        self.base_y = GROUND_Y - int(WAVE_OBSTACLE_AMPLITUDE * (0.5 + 0.5 * math.sin(self.phase)))
+            elif self.state == "playing":
+                self._blit_text(f"Score: {self.score}", int(h*0.045), SCORE_COLOR, 16, h*0.92)
+                self._blit_text(f"Best: {self.high_score}", int(h*0.035), WHITE, 16, h*0.87)
+                remaining = max(0, LEVELS[self.selected_level]["duration"] - self.level_timer // FPS)
+                self._blit_text(f"Time: {remaining}s", int(h*0.035), WHITE, 16, h*0.82)
+                self._blit_text(LEVELS[self.selected_level]["name"], int(h*0.030), (0.78, 0.78, 1.0, 1), 16, h*0.77)
 
-    def draw(self, screen: pygame.Surface) -> None:
-        tip = (self.x + self.width // 2, self.base_y - self.height)
-        bottom_left = (self.x, self.base_y)
-        bottom_right = (self.x + self.width, self.base_y)
-        pygame.draw.polygon(screen, (170, 220, 255), [tip, bottom_left, bottom_right])
-        pygame.draw.polygon(screen, BLACK, [tip, bottom_left, bottom_right], 2)
+            elif self.state == "gameover":
+                self._blit_text("GAME OVER", int(h*0.09), OBSTACLE_COLOR, w/2, h*0.65, center=True)
+                self._blit_text(f"Score: {self.score}   Best: {self.high_score}", int(h*0.05), SCORE_COLOR, w/2, h*0.53, center=True)
+                self._blit_text("R to retry · TAP to menu", int(h*0.04), WHITE, w/2, h*0.43, center=True)
 
-    def get_rect(self) -> pygame.Rect:
-        margin_x = 4
-        return pygame.Rect(
-            self.x + margin_x,
-            self.base_y - int(self.height * 0.6),
-            self.width - margin_x * 2,
-            int(self.height * 0.6),
-        )
+            elif self.state == "complete":
+                self._blit_text("LEVEL COMPLETE!", int(h*0.09), (0.39, 1.0, 0.39, 1), w/2, h*0.65, center=True)
+                self._blit_text(f"Score: {self.score}   Best: {self.high_score}", int(h*0.05), SCORE_COLOR, w/2, h*0.53, center=True)
+                self._blit_text("R to retry · TAP to menu", int(h*0.04), WHITE, w/2, h*0.43, center=True)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SCROLLING BACKGROUND LINES
-# ─────────────────────────────────────────────────────────────────────────────
-
-class Background:
-    """Simple scrolling lines to give a sense of speed."""
-
-    def __init__(self) -> None:
-        self.lines: list[int] = list(range(0, WINDOW_WIDTH + 200, 200))
-
-    def update(self) -> None:
-        self.lines = [(x - OBSTACLE_SPEED) % (WINDOW_WIDTH + 200) for x in self.lines]
-
-    def draw(self, screen: pygame.Surface) -> None:
-        for x in self.lines:
-            pygame.draw.line(screen, (50, 50, 80), (x - 200, 0), (x, GROUND_Y), 1)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
-
-def draw_text(
-    screen: pygame.Surface,
-    text: str,
-    size: int,
-    x: int,
-    y: int,
-    color: tuple[int, int, int] = WHITE,
-    center: bool = False,
-) -> None:
-    """Draw text on screen."""
-    font = pygame.font.SysFont("Arial", size, bold=True)
-    surface = font.render(text, True, color)
-    rect = surface.get_rect()
-    if center:
-        rect.center = (x, y)
-    else:
-        rect.topleft = (x, y)
-    screen.blit(surface, rect)
-
-
-def generate_death_sound() -> pygame.mixer.Sound:
-    """Generate a simple descending death sound (works with or without numpy)."""
-    sample_rate = 22050
-    duration = 0.5  # seconds
-    frequency_start = 800  # Hz
-    frequency_end = 200  # Hz
-    samples = int(sample_rate * duration)
-
-    if _NUMPY_AVAILABLE:
-        # Fast path: use numpy
-        t_arr = np.arange(samples) / sample_rate
-        freq_arr = frequency_start - (frequency_start - frequency_end) * (t_arr / duration)
-        amplitude_arr = 32767 * (1 - t_arr / duration)
-        sound_array = (amplitude_arr * np.sin(2 * np.pi * freq_arr * t_arr)).astype(np.int16)
-        raw = sound_array.tobytes()
-    else:
-        # Pure-Python fallback for iOS (no numpy)
-        import struct
-        raw_samples = []
-        for i in range(samples):
-            t = i / sample_rate
-            freq = frequency_start - (frequency_start - frequency_end) * (t / duration)
-            amplitude = 32767 * (1 - t / duration)
-            value = int(amplitude * math.sin(2 * math.pi * freq * t))
-            # clamp to int16 range
-            value = max(-32768, min(32767, value))
-            raw_samples.append(value)
-        raw = struct.pack(f"<{samples}h", *raw_samples)
-
-    return pygame.mixer.Sound(buffer=raw)
+    def _blit_text(self, text, font_size, color, x, y, center=False):
+        tex = make_label_texture(text, font_size, color)
+        if center:
+            x -= tex.width / 2
+            y -= tex.height / 2
+        Color(1, 1, 1, 1)
+        Rectangle(texture=tex, pos=(x, y), size=(tex.width, tex.height))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# MAIN GAME LOOP
+# KIVY APP
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run_game() -> None:
-    """Launch and run the Geometry Dash game."""
-    pygame.init()
-    pygame.mixer.init()
-
-    # Start windowed; press F to toggle fullscreen
-    global WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y
-    fullscreen = False
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption("Geometry Dash")
-    clock = pygame.time.Clock()
-    
-    death_sound = generate_death_sound()
-
-    player = Player()
-    background = Background()
-    obstacles: list[Obstacle] = []
-    score = 0
-    coins = 0
-    high_score = 0
-    current_level = 0
-    selected_level = 0
-    frames_until_next = LEVELS[current_level]["min_gap"]
-    level_timer = 0
-    game_over = False
-    started = False
-    game_state = "menu"  # menu, level_select, playing, shop, editor, profile, level_complete, gameover
-    mode = "classic"  # toggle between classic and wave mode
-    selected_icon = 0
-    unlocked_icons = {0}
-    editor_objects: list[dict[str, int|str]] = []
-    editor_cursor = [EDITOR_GRID_X[0], EDITOR_GRID_Y[0]]
-    custom_mode = False
-    custom_events: list[dict[str, int|str]] = []
-    custom_timer = 0
-    current_speed = OBSTACLE_SPEED
-    level_rng = random.Random()
-    player_name = "Player"
-    player_name_input = ""
-    editing_name = False
-    stars = 0
-    stars_per_level = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}  # Track stars earned per level
-    beaten_levels = set()
-    gravity_change_timer = 0
-    current_gravity = GRAVITY
-    death_position = None
-    
-    # Star rewards per level when beaten
-    STARS_FOR_LEVEL = {0: 2, 1: 4, 2: 5, 3: 9, 4: 10}  # Level index -> stars for beating it
-
-    def reset() -> None:
-        nonlocal obstacles, score, frames_until_next, game_over, started, current_level, game_state, custom_mode, custom_events, custom_timer, current_speed, gravity_change_timer, current_gravity, death_position, level_timer, player_name_input, editing_name, stars, stars_per_level, beaten_levels
-        player.reset()
-        obstacles = []
-        score = 0
-        current_level = 0
-        frames_until_next = LEVELS[current_level]["min_gap"]
-        game_over = False
-        started = False
-        game_state = "menu"
-        custom_mode = False
-        custom_events = []
-        custom_timer = 0
-        current_speed = OBSTACLE_SPEED
-        gravity_change_timer = 0
-        current_gravity = GRAVITY
-        death_position = None
-        level_timer = 0
-        player_name_input = ""
-        editing_name = False
-
-    while True:
-        # ── Events ────────────────────────────────────────────────────────────
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
-                pygame.quit()
-                sys.exit()
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
-                current_idx = GAME_MODES.index(mode)
-                mode = GAME_MODES[(current_idx + 1) % len(GAME_MODES)]
-                gravity_change_timer = 0
-                current_gravity = GRAVITY
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and game_state == "menu":
-                game_state = "level_select"
-                selected_level = 0
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_p and game_state == "menu":
-                game_state = "profile"
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_e and game_state == "menu":
-                game_state = "level_select"
-                selected_level = 0
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_s and game_state == "menu":
-                game_state = "shop"
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_c and game_state == "menu":
-                game_state = "editor"
-                editor_cursor = [EDITOR_GRID_X[0], EDITOR_GRID_Y[0]]
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and game_state in {"shop", "editor", "level_select", "profile"}:
-                game_state = "menu"
-
-            if event.type == pygame.KEYDOWN and game_state == "level_select":
-                if event.key == pygame.K_LEFT:
-                    selected_level = (selected_level - 1) % len(LEVELS)
-                if event.key == pygame.K_RIGHT:
-                    selected_level = (selected_level + 1) % len(LEVELS)
-                if event.key == pygame.K_RETURN:
-                    game_state = "playing"
-                    started = True
-                    player.reset()
-                    obstacles = []
-                    score = 0
-                    current_level = selected_level
-                    frames_until_next = LEVELS[current_level]["min_gap"]
-                    level_timer = 0
-                    death_position = None
-                    level_seed = LEVELS[current_level].get("seed", None)
-                    if level_seed is not None:
-                        level_rng.seed(level_seed)
-                    else:
-                        level_rng = random.Random()
-
-            if event.type == pygame.KEYDOWN and game_state == "editor":
-                if event.key == pygame.K_RIGHT:
-                    editor_cursor[0] = min(EDITOR_GRID_X[1], editor_cursor[0] + EDITOR_CELL_SIZE)
-                if event.key == pygame.K_LEFT:
-                    editor_cursor[0] = max(EDITOR_GRID_X[0], editor_cursor[0] - EDITOR_CELL_SIZE)
-                if event.key == pygame.K_UP:
-                    editor_cursor[1] = max(EDITOR_GRID_Y[0], editor_cursor[1] - EDITOR_CELL_SIZE)
-                if event.key == pygame.K_DOWN:
-                    editor_cursor[1] = min(EDITOR_GRID_Y[1], editor_cursor[1] + EDITOR_CELL_SIZE)
-
-                if event.key == pygame.K_1:
-                    # spike event: spawn at time based on x position
-                    spawn_time = int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL)
-                    editor_objects.append({"type": "spike", "spawn_time": spawn_time, "y": editor_cursor[1]})
-                if event.key == pygame.K_2:
-                    spawn_time = int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL)
-                    editor_objects.append({"type": "block", "spawn_time": spawn_time, "y": editor_cursor[1]})
-                if event.key == pygame.K_3:
-                    spawn_time = int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL)
-                    editor_objects.append({"type": "speed", "spawn_time": spawn_time, "speed": max(3, current_speed + 2)})
-                if event.key == pygame.K_d:
-                    editor_objects = [obj for obj in editor_objects if not (obj["spawn_time"] == int((editor_cursor[0] - EDITOR_GRID_X[0]) * EDITOR_FRAMES_PER_PIXEL) and abs(obj.get("y", GROUND_Y) - editor_cursor[1]) <= 10)]
-                if event.key == pygame.K_r:
-                    game_state = "menu"
-                if event.key == pygame.K_p or event.key == pygame.K_RETURN:
-                    if editor_objects:
-                        game_state = "playing"
-                        started = True
-                        player.reset()
-                        obstacles = []
-                        score = 0
-                        current_level = selected_level
-                        frames_until_next = LEVELS[current_level]["min_gap"]
-                        custom_mode = True
-                        custom_timer = 0
-                        custom_events = sorted(editor_objects, key=lambda o: o["spawn_time"])
-                        current_speed = OBSTACLE_SPEED
-
-            if event.type == pygame.MOUSEBUTTONDOWN and game_state == "profile":
-                click_x, click_y = event.pos
-                name_box = pygame.Rect(WINDOW_WIDTH // 2 - 150, 140, 300, 36)
-                if name_box.collidepoint(click_x, click_y):
-                    editing_name = True
-                    player_name_input = player_name
-
-            if event.type == pygame.KEYDOWN and editing_name:
-                if event.key == pygame.K_RETURN:
-                    editing_name = False
-                    trimmed = player_name_input.strip()
-                    player_name = trimmed if trimmed else "Player"
-                elif event.key == pygame.K_BACKSPACE:
-                    player_name_input = player_name_input[:-1]
-                else:
-                    char = event.unicode
-                    if char.isprintable() and len(player_name_input) < 18:
-                        player_name_input += char
-
-            jump = (
-                (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
-                or event.type == pygame.MOUSEBUTTONDOWN
-            )
-            if jump and game_state == "playing":
-                started = True
-                player.jump()
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_r and game_state in {"gameover", "level_complete"}:
-                # Restart the same level
-                player.reset()
-                obstacles = []
-                score = 0
-                current_level = selected_level
-                frames_until_next = LEVELS[current_level]["min_gap"]
-                level_timer = 0
-                level_seed = LEVELS[current_level].get("seed", None)
-                if level_seed is not None:
-                    level_rng.seed(level_seed)
-                else:
-                    level_rng = random.Random()
-                game_over = False
-                started = False
-                game_state = "playing"
-                gravity_change_timer = 0
-                current_gravity = GRAVITY
-                death_position = None
-            elif jump and game_state in {"gameover", "level_complete"}:
-                game_state = "menu"
-                reset()
-
-        # ── Update ────────────────────────────────────────────────────────────
-        if started and not game_over and game_state == "playing":
-            # Handle gravity changes in gravity mode
-            if mode == "gravity":
-                gravity_change_timer += 1
-                if gravity_change_timer >= GRAVITY_CHANGE_INTERVAL:
-                    current_gravity = random.uniform(GRAVITY_MIN, GRAVITY_MAX)
-                    gravity_change_timer = 0
-            else:
-                current_gravity = GRAVITY
-
-            # Level-dependent jump count
-            if current_level == 3:  # Level 4 Insane Ride
-                player.max_jumps = 3
-            elif current_level == 4:  # Level 5 Demon Ride
-                player.max_jumps = 1
-            else:
-                player.max_jumps = 2
-
-            player.update(current_gravity)
-            background.update()
-
-            if custom_mode:
-                custom_timer += 1
-                while custom_events and custom_events[0]["spawn_time"] <= custom_timer:
-                    event_obj = custom_events.pop(0)
-                    if event_obj["type"] == "speed":
-                        current_speed = event_obj.get("speed", current_speed)
-                        continue
-
-                    if event_obj["type"] == "spike":
-                        obs = Obstacle(WINDOW_WIDTH + 10, base_y=event_obj.get("y", GROUND_Y))
-                    else:
-                        obs = Obstacle(WINDOW_WIDTH + 10, base_y=event_obj.get("y", GROUND_Y), width=OBSTACLE_WIDTH*2, height=OBSTACLE_HEIGHT//2)
-
-                    if mode == "wave":
-                        wave_obs = WaveObstacle(obs.x, random.random() * 2 * math.pi)
-                        wave_obs.base_y = obs.base_y
-                        wave_obs.speed = current_speed
-                        obstacles.append(wave_obs)
-                    else:
-                        obs.speed = current_speed
-                        obstacles.append(obs)
-
-                # stop if the map is done
-                if not custom_events and not obstacles:
-                    game_over = True
-                    game_state = "gameover"
-                    death_sound.play()
-                    if score > high_score:
-                        high_score = score
-
-            else:
-                level = LEVELS[current_level]
-                current_speed = level["speed"]
-                frames_until_next -= 1
-                if frames_until_next <= 0:
-                    def make_obs() -> Obstacle:
-                        if mode == "wave":
-                            wave_obs = WaveObstacle(WINDOW_WIDTH + 10, level_rng.random() * 2 * math.pi)
-                            wave_obs.speed = level["speed"]
-                            return wave_obs
-                        
-                        # Decide if this should be a block or spike based on level difficulty
-                        is_block = level_rng.random() < level.get("block_chance", 0)
-                        if is_block:
-                            base = Obstacle(WINDOW_WIDTH + 10, width=OBSTACLE_WIDTH*2, height=OBSTACLE_HEIGHT//2)
-                        else:
-                            base = Obstacle(WINDOW_WIDTH + 10)
-                        base.speed = level["speed"]
-                        return base
-
-                    first = make_obs()
-                    obstacles.append(first)
-
-                    if current_level != 4 and level_rng.random() < HARDER_SPIKE_CHANCE:
-                        extra = make_obs()
-                        extra.x = WINDOW_WIDTH + 10 + OBSTACLE_WIDTH + 10
-                        obstacles.append(extra)
-
-                    frames_until_next = random.randint(level["min_gap"], level["max_gap"])
-
-            for obs in obstacles:
-                obs.update()
-                if not obs.passed and obs.x + obs.width < player.x:
-                    obs.passed = True
-                    score += 1
-                    coins += 1
-                    if not custom_mode and score >= level["score_to_next"] and current_level + 1 < len(LEVELS):
-                        current_level += 1
-
-                if player.get_rect().colliderect(obs.get_rect()):
-                    death_position = (player.x, player.y)
-                    game_over = True
-                    game_state = "gameover"
-                    death_sound.play()
-                    if score > high_score:
-                        high_score = score
-                    
-                    # Award stars for beating the level (if not in custom mode and haven't beaten this level yet)
-                    if not custom_mode and current_level not in beaten_levels and not custom_mode:
-                        beaten_levels.add(current_level)
-                        stars_per_level[current_level] = STARS_FOR_LEVEL.get(current_level, 0)
-                        stars = sum(stars_per_level.values())
-
-            obstacles = [o for o in obstacles if not o.is_offscreen()]
-
-            # Level timer and win condition for all normal levels
-            if not custom_mode and game_state == "playing":
-                level_timer += 1
-                level_duration = LEVELS[current_level].get("duration", 60)
-                if level_timer >= FPS * level_duration:
-                    game_state = "level_complete"
-                    started = False
-                    if current_level not in beaten_levels:
-                        beaten_levels.add(current_level)
-                        stars_per_level[current_level] = STARS_FOR_LEVEL.get(current_level, 0)
-                        stars = sum(stars_per_level.values())
-
-        # Ensure selected player's cube color is applied
-        player.color = ICON_COLORS[selected_icon]
-
-        # ── Draw ──────────────────────────────────────────────────────────────
-        screen.fill(BACKGROUND_COLOR)
-        background.draw(screen)
-
-        pygame.draw.rect(screen, GROUND_COLOR, (0, GROUND_Y, WINDOW_WIDTH, GROUND_HEIGHT))
-        pygame.draw.line(screen, (120, 120, 180), (0, GROUND_Y), (WINDOW_WIDTH, GROUND_Y), 2)
-
-        for obs in obstacles:
-            obs.draw(screen)
-
-        player.draw(screen)
-
-        if game_state == "menu":
-            draw_text(screen, "GEOMETRY DASH", 60, WINDOW_WIDTH // 2, 100, PLAYER_COLOR, center=True)
-            draw_text(screen, "Press ENTER to Play, P for Profile, E for Levels", 28, WINDOW_WIDTH // 2, 170, WHITE, center=True)
-            draw_text(screen, "S for Shop, C for Create, M to toggle mode", 22, WINDOW_WIDTH // 2, 210, WHITE, center=True)
-            draw_text(screen, f"Mode: {mode.upper()} (press M to cycle)", 20, WINDOW_WIDTH // 2, 260, (180, 180, 180), center=True)
-            draw_text(screen, f"Coins: {coins}", 20, WINDOW_WIDTH // 2, 290, (180, 255, 180), center=True)
-
-        elif game_state == "level_select":
-            draw_text(screen, "Use LEFT/RIGHT to choose, ENTER to play, ESC to menu", 20, WINDOW_WIDTH // 2, 50, WHITE, center=True)
-            draw_text(screen, "SELECT LEVEL", 56, WINDOW_WIDTH // 2, 90, SCORE_COLOR, center=True)
-            for idx, lvl in enumerate(LEVELS):
-                color = SCORE_COLOR if idx == selected_level else (180, 180, 180)
-                draw_text(screen, f"{idx+1} - {lvl['name']}", 40, WINDOW_WIDTH // 2, 170 + idx*50, color, center=True)
-
-        elif game_state == "profile":
-            draw_text(screen, "PROFILE", 56, WINDOW_WIDTH // 2, 80, SCORE_COLOR, center=True)
-            name_box = pygame.Rect(WINDOW_WIDTH // 2 - 150, 140, 300, 36)
-            pygame.draw.rect(screen, (80, 80, 80), name_box, border_radius=4)
-            pygame.draw.rect(screen, WHITE if editing_name else (180, 180, 180), name_box, 2, border_radius=4)
-            if editing_name:
-                display_name = player_name_input or "Enter name..."
-            else:
-                display_name = player_name
-            draw_text(screen, f"Name: {display_name}", 28, WINDOW_WIDTH // 2, 150, WHITE, center=True)
-            draw_text(screen, "(click name to edit, max 18 chars)", 16, WINDOW_WIDTH // 2, 180, (200, 200, 200), center=True)
-            
-            # Show current icon
-            icon_size = 60
-            icon_x = WINDOW_WIDTH // 2 - icon_size // 2
-            pygame.draw.rect(screen, ICON_COLORS[selected_icon], (icon_x, 220, icon_size, icon_size), border_radius=8)
-            draw_text(screen, "Current Icon", 18, WINDOW_WIDTH // 2, 290, (180, 180, 180), center=True)
-            
-            draw_text(screen, f"★ Stars: {stars}", 32, WINDOW_WIDTH // 2, 330, SCORE_COLOR, center=True)
-            draw_text(screen, f"Coins: {coins}", 24, WINDOW_WIDTH // 2, 370, (180, 255, 180), center=True)
-            draw_text(screen, "Press ESC to return to menu", 20, WINDOW_WIDTH // 2, 400, WHITE, center=True)
-
-        elif game_state == "shop":
-            draw_text(screen, "SHOP", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
-            draw_text(screen, f"Coins: {coins}", 32, WINDOW_WIDTH - 190, 20, SCORE_COLOR)
-            draw_text(screen, "Use LEFT/RIGHT to select icon, U to unlock, ESC to menu", 20, WINDOW_WIDTH // 2, 110, WHITE, center=True)
-
-            icon_y = 180
-            for i, col in enumerate(ICON_COLORS):
-                x = 120 + i * 120
-                pygame.draw.rect(screen, col, (x, icon_y, 80, 80), border_radius=10)
-                if i == selected_icon:
-                    pygame.draw.rect(screen, WHITE, (x - 6, icon_y - 6, 92, 92), 3, border_radius=14)
-
-                status = "OWNED" if i in unlocked_icons else f"{UNLOCK_COST} COINS"
-                status_color = SCORE_COLOR if i in unlocked_icons else (255, 180, 180)
-                draw_text(screen, status, 16, x + 40, icon_y + 92, status_color, center=True)
-
-            sel_text = "Selected: {}".format("Owned" if selected_icon in unlocked_icons else "Locked")
-            draw_text(screen, sel_text, 22, WINDOW_WIDTH // 2, 280, WHITE, center=True)
-            if selected_icon in unlocked_icons:
-                draw_text(screen, "Press P or ENTER to return to menu", 20, WINDOW_WIDTH // 2, 320, (180, 255, 180), center=True)
-            else:
-                draw_text(screen, f"Press U to unlock this cube for {UNLOCK_COST} coins", 20, WINDOW_WIDTH // 2, 320, (255, 220, 220), center=True)
-
-        elif game_state == "editor":
-            draw_text(screen, "LEVEL EDITOR", 56, WINDOW_WIDTH // 2, 70, SCORE_COLOR, center=True)
-            draw_text(screen, "Arrows to move cursor, 1 spike, 2 block, 3 speed, D delete", 20, WINDOW_WIDTH // 2, 120, WHITE, center=True)
-            draw_text(screen, "P/ENTER to play custom level, ESC/R to menu", 20, WINDOW_WIDTH // 2, 150, WHITE, center=True)
-            draw_text(screen, f"Cursor: ({editor_cursor[0]}, {editor_cursor[1]})", 18, 120, 200, SCORE_COLOR)
-            draw_text(screen, f"Editor objects: {len(editor_objects)}", 18, 120, 220, SCORE_COLOR)
-
-            # draw editor placement grid and objects
-            for x in range(EDITOR_GRID_X[0], EDITOR_GRID_X[1] + 1, EDITOR_CELL_SIZE):
-                pygame.draw.line(screen, (80, 80, 100), (x, EDITOR_GRID_Y[0]), (x, EDITOR_GRID_Y[1]), 1)
-            for y in range(EDITOR_GRID_Y[0], EDITOR_GRID_Y[1] + 1, EDITOR_CELL_SIZE):
-                pygame.draw.line(screen, (80, 80, 100), (EDITOR_GRID_X[0], y), (EDITOR_GRID_X[1], y), 1)
-
-            # draw ground line
-            pygame.draw.line(screen, GROUND_COLOR, (EDITOR_GRID_X[0], GROUND_Y), (EDITOR_GRID_X[1], GROUND_Y), 3)
-            draw_text(screen, "GROUND", 14, EDITOR_GRID_X[0] + 10, GROUND_Y - 5, GROUND_COLOR)
-
-            pygame.draw.circle(screen, (255, 255, 255), editor_cursor, 6)
-            for obj in editor_objects:
-                px = EDITOR_GRID_X[0] + int(obj["spawn_time"] / EDITOR_FRAMES_PER_PIXEL)
-                py = obj.get("y", GROUND_Y)
-                if obj["type"] == "spike":
-                    pygame.draw.polygon(screen, OBSTACLE_COLOR, [(px, py), (px-10, py+20), (px+10, py+20)])
-                elif obj["type"] == "block":
-                    pygame.draw.rect(screen, (200, 200, 200), (px-15, py, 30, 20))
-                elif obj["type"] == "speed":
-                    pygame.draw.circle(screen, (255, 200, 0), (px, py), 8)
-
-        else:
-            draw_text(screen, f"Score: {score}", 28, 16, 16, SCORE_COLOR)
-            draw_text(screen, f"Coins: {coins}", 20, 16, 50, (180, 255, 180))
-            draw_text(screen, f"Best:  {high_score}", 20, 16, 80, (180, 180, 100))
-            draw_text(screen, f"Mode: {mode.upper()} (press M to switch)", 20, 16, 110, (180, 180, 180))
-            draw_text(screen, f"Level: {LEVELS[current_level]['name']}", 20, 16, 140, (200, 200, 255))
-            draw_text(screen, f"Jumps left: {player.available_jumps}", 18, 16, 170, (180, 220, 255))
-            
-            if mode == "gravity" and game_state == "playing":
-                draw_text(screen, f"Gravity: {current_gravity:.2f}", 18, 16, 170, (255, 180, 100))
-
-            if game_state == "playing" and not custom_mode:
-                duration = LEVELS[current_level].get("duration", 60)
-                remaining = max(0, duration - level_timer // FPS)
-                draw_text(screen, f"Time Remaining: {remaining}s", 20, 16, 180, (180, 255, 180))
-
-            if game_state == "gameover":
-                if death_position:
-                    pygame.draw.rect(screen, (255, 0, 0), (int(death_position[0]) - 20, int(death_position[1]) - 20, 40, 40))
-                draw_text(screen, "GAME OVER", 56, WINDOW_WIDTH // 2, 140, OBSTACLE_COLOR, center=True)
-                draw_text(screen, f"Score: {score}   Best: {high_score}", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
-                draw_text(screen, "Press R to retry level, SPACE/click to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
-            elif game_state == "level_complete":
-                draw_text(screen, "LEVEL COMPLETE", 56, WINDOW_WIDTH // 2, 140, (100, 255, 100), center=True)
-                draw_text(screen, "You survived 60 seconds!", 30, WINDOW_WIDTH // 2, 210, SCORE_COLOR, center=True)
-                draw_text(screen, "Press R to retry level, SPACE/click to menu", 24, WINDOW_WIDTH // 2, 260, WHITE, center=True)
-
-        pygame.display.flip()
-        clock.tick(FPS)
+class GeometryDashApp(App):
+    def build(self):
+        Window.clearcolor = (0.12, 0.12, 0.20, 1)
+        return GameWidget()
 
 
-def main() -> None:
-    """Entry point."""
-    run_game()
+def main():
+    GeometryDashApp().run()
 
 
 if __name__ == "__main__":

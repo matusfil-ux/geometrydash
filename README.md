@@ -1,9 +1,10 @@
 # 🎮 Geometry Dash — Python Game
 
-**Version:** 0.1.0 · **Python:** 3.11 · **Package manager:** [uv](https://github.com/astral-sh/uv)
+**Version:** 0.1.0 · **Python:** 3.11 · **Package manager:** [uv](https://github.com/astral-sh/uv) · **Framework:** [Kivy](https://kivy.org)
 
 > Jump over spikes, earn coins, unlock cube colors, build your own levels —  
-> then open `game.py` and make it even better!
+> then open `game.py` and make it even better!  
+> Runs on **Mac**, **iPhone**, and **iPad**.
 
 ---
 
@@ -27,8 +28,6 @@
 
 ### Step 1 — Install `uv`
 
-`uv` creates virtual environments and installs packages — much faster than plain pip.
-
 Open **Terminal** (`Cmd+Space` → type `Terminal` → Enter):
 
 ```bash
@@ -51,8 +50,6 @@ git clone https://github.com/matusfil-ux/geometrydash
 cd geometrydash
 ```
 
-> 💡 All following commands must be run from inside the `geometrydash` folder.
-
 ---
 
 ### Step 3 — Create a virtual environment with Python 3.11
@@ -60,8 +57,6 @@ cd geometrydash
 ```bash
 uv venv --python 3.11
 ```
-
-> ⚠️ Use Python **3.11** — not 3.12, 3.13, or 3.14. The iOS deploy tools require 3.11.
 
 If Python 3.11 is not installed:
 ```bash
@@ -75,7 +70,7 @@ uv venv --python 3.11
 
 ```bash
 source .venv/bin/activate
-uv pip install pygame-ce numpy
+uv pip install "kivy[base]"
 uv pip install -e .
 ```
 
@@ -89,7 +84,7 @@ uv pip install -e .
 python -m geometrydash
 ```
 
-A window opens. **Press ENTER to reach level select, then ENTER again to start!**
+A window opens. **Tap or click to jump!**
 
 ---
 
@@ -105,58 +100,36 @@ python -m geometrydash
 
 ## 2 · How to Play
 
-### Main Menu
+### Controls
 
-| Key | Action |
-|-----|--------|
-| `ENTER` | Go to level select |
-| `P` | Profile — set your name, see stars & coins, pick cube colour |
-| `S` | Shop — spend coins to unlock new cube colours |
-| `C` | Level Editor — build your own level! |
-| `M` | Cycle game mode: Classic → Wave → Gravity |
-| `A` | Quit |
-
-### Level Select
-
-| Key | Action |
-|-----|--------|
+| Key / Touch | Action |
+|-------------|--------|
+| **Tap / Click** | Jump |
+| `SPACE` | Jump |
+| `ENTER` | Confirm / start |
 | `←` / `→` | Browse levels |
-| `ENTER` | Play selected level |
+| `R` | Retry after game over |
 | `ESC` | Back to menu |
 
-### Playing
+### Screens
 
-| Key / Mouse | Action |
-|-------------|--------|
-| `SPACE` or click | Jump |
-| `M` | Switch game mode mid-run |
-
-### Game Over / Complete
-
-| Key | Action |
-|-----|--------|
-| `R` | Retry |
-| `SPACE` or click | Back to menu |
-
----
+| Screen | How to navigate |
+|--------|----------------|
+| **Menu** | Tap anywhere → Level Select |
+| **Level Select** | Tap left quarter = previous level · Tap right quarter = next level · Tap centre = play |
+| **Playing** | Tap / SPACE to jump |
+| **Game Over** | `R` to retry · Tap to go back to menu |
+| **Level Complete** | `R` to retry · Tap to go back to menu |
 
 ### 5 Levels
 
-| # | Name | Difficulty | Duration | Jumps |
-|---|------|-----------|----------|-------|
-| 1 | Easy | 🟢 | 80 s | 2 (double jump) |
-| 2 | Medium | 🟡 | 80 s | 2 |
-| 3 | Hard | 🟠 | 60 s | 2 |
-| 4 | Insane Ride | 🔴 | 60 s | 3 (triple jump!) |
-| 5 | Demon Ride | 💀 | 45 s | 1 (single jump only) |
-
-### 3 Game Modes
-
-| Mode | What happens |
-|------|-------------|
-| **Classic** | Normal — jump over spikes |
-| **Wave** | Spikes move up and down in waves |
-| **Gravity** | Gravity randomly flips every 5 seconds |
+| # | Name | Difficulty | Jumps |
+|---|------|-----------|-------|
+| 1 | Easy | 🟢 | double jump |
+| 2 | Medium | 🟡 | double jump |
+| 3 | Hard | 🟠 | double jump |
+| 4 | Insane | 🔴 | triple jump! |
+| 5 | Demon Ride | 💀 | single jump only |
 
 ---
 
@@ -175,13 +148,6 @@ geometrydash/
         └── game.py         ← ⭐ THE WHOLE GAME — edit this!
 ```
 
-| File | What it does |
-|------|-------------|
-| `pyproject.toml` | Declares dependencies for Mac and iPhone separately. |
-| `game.py` | Player, obstacles, levels, shop, editor, game loop. **Edit this!** |
-| `__main__.py` | Entry point called by `python -m geometrydash`. |
-| `__init__.py` | Marks the folder as a Python package. |
-
 ---
 
 ## 4 · Improve the Game
@@ -192,34 +158,32 @@ Open `game.py` in VS Code:
 code src/geometrydash/game.py
 ```
 
-Find the **SETTINGS block** near the top — every tweak starts there.  
-After each change: save (`Cmd+S`), then run again.
+Find the **SETTINGS block** near the top. After each change: save (`Cmd+S`), then run again.
 
 ---
 
-### 🟢 Easy — Change colors
+### 🟢 Easy — Change the player color
+
+Colors use values from 0.0 to 1.0 (not 0–255):
 
 ```python
-PLAYER_COLOR    = (0, 200, 255)    # cyan  → try (255, 100, 0) for orange
-OBSTACLE_COLOR  = (255, 80, 80)    # red   → try (0, 200, 100) for green
-BACKGROUND_COLOR = (30, 30, 50)    # dark  → try (0, 0, 0) for pure black
+PLAYER_COLOR = (0.0, 0.78, 1.0, 1)   # cyan (default)
+```
+
+Try these:
+```python
+PLAYER_COLOR = (1.0, 0.39, 0.0, 1)   # orange
+PLAYER_COLOR = (0.39, 1.0, 0.39, 1)  # green
+PLAYER_COLOR = (1.0, 0.0, 1.0, 1)    # magenta
 ```
 
 ---
 
-### 🟢 Easy — Add a cube color to the shop
-
-Find `ICON_COLORS` in the SETTINGS and add a new line:
+### 🟢 Easy — Change obstacle color
 
 ```python
-ICON_COLORS = [
-    (0, 200, 255),   # cyan (default)
-    (255, 100, 100), # red
-    (100, 255, 100), # green
-    (255, 255, 100), # yellow
-    (255, 0, 255),   # magenta
-    (255, 255, 255), # white  ← add this!
-]
+OBSTACLE_COLOR = (1.0, 0.31, 0.31, 1)  # red (default)
+OBSTACLE_COLOR = (1.0, 0.78, 0.0,  1)  # yellow
 ```
 
 ---
@@ -227,11 +191,9 @@ ICON_COLORS = [
 ### 🟡 Medium — Change physics
 
 ```python
-JUMP_VELOCITY = -14   # higher number = bigger jump  (try -18 for moon jump)
-GRAVITY       = 0.7   # higher = falls faster         (try 0.4 for floaty)
+JUMP_VELOCITY = 0.022   # higher = bigger jump  (try 0.030 for moon jump)
+GRAVITY       = 0.0012  # higher = falls faster  (try 0.0006 for floaty)
 ```
-
-> ⚠️ `JUMP_VELOCITY` must stay **negative** (minus = up).
 
 ---
 
@@ -239,16 +201,15 @@ GRAVITY       = 0.7   # higher = falls faster         (try 0.4 for floaty)
 
 ```python
 LEVELS = [
-    {"name": "Level 1 - Easy", "speed": 5, "min_gap": 90, "max_gap": 150, "duration": 80, ...},
+    {"name": "Level 1 · Easy", "speed": 0.006, "min_gap": 90, "max_gap": 150, "duration": 60},
 ]
 ```
 
 | Setting | What it does |
 |---------|-------------|
-| `speed` | How fast obstacles scroll (pixels/frame) |
-| `min_gap` / `max_gap` | Frames between obstacles |
+| `speed` | Fraction of screen width per frame (bigger = faster) |
+| `min_gap` / `max_gap` | Frames between obstacles (smaller = harder) |
 | `duration` | Seconds you need to survive |
-| `block_chance` | 0–1 chance of a block instead of a spike |
 
 ---
 
@@ -257,51 +218,17 @@ LEVELS = [
 Append to the `LEVELS` list:
 
 ```python
-{"name": "Level 6 - My Level", "speed": 8, "min_gap": 50, "max_gap": 90,
- "score_to_next": 9999, "block_chance": 0.2, "duration": 60},
+{"name": "Level 6 · My Level", "speed": 0.011, "min_gap": 40, "max_gap": 80, "duration": 55},
 ```
 
 ---
 
-### 🔴 Hard — New obstacle shape
+### 🔴 Hard — Change background color
 
 ```python
-class TallObstacle(Obstacle):
-    """A tall thin spike."""
-    def __init__(self, x: int) -> None:
-        super().__init__(x)
-        self.width  = 15
-        self.height = 80
-```
-
-Then in `make_obs()` inside `run_game()`:
-
-```python
-if level_rng.random() < 0.2:
-    base = TallObstacle(WINDOW_WIDTH + 10)
-else:
-    base = Obstacle(WINDOW_WIDTH + 10)
-```
-
----
-
-### 🔴 Hard — Save high score to a file
-
-After `high_score = 0`, add:
-
-```python
-import json, pathlib
-SAVE_FILE = pathlib.Path("scores.json")
-if SAVE_FILE.exists():
-    high_score = json.loads(SAVE_FILE.read_text()).get("high_score", 0)
-```
-
-Where `high_score` is updated:
-
-```python
-if score > high_score:
-    high_score = score
-    SAVE_FILE.write_text(json.dumps({"high_score": high_score}))
+BG_COLOR = (0.12, 0.12, 0.20, 1)   # dark blue (default)
+BG_COLOR = (0.0,  0.0,  0.0,  1)   # pure black
+BG_COLOR = (0.05, 0.15, 0.05, 1)   # dark green
 ```
 
 ---
@@ -313,48 +240,44 @@ game.py
 │
 ├── SETTINGS block          ← start here — colors, speed, gravity, levels
 │
-├── class Player            ← the spinning cube you control
-│   ├── jump()              ← fires on SPACE / tap
-│   ├── update(gravity)     ← gravity, landing, rotation
-│   └── draw()              ← spinning cube with cross pattern
+├── make_label_texture()    ← helper: renders text onto the canvas
 │
-├── class Obstacle          ← red triangle spike
-├── class WaveObstacle      ← spike that bobs up/down (wave mode)
-├── class Background        ← scrolling diagonal lines
-│
-├── draw_text()             ← helper to draw text anywhere on screen
-├── generate_death_sound()  ← descending beep on death (pure Python, no numpy on iOS)
-│
-└── run_game()              ← THE MAIN LOOP ⭐
-    ├── Events              ← keyboard / mouse / finger input
-    ├── Update              ← move everything, check collisions, count score
-    └── Draw                ← pick the right screen and draw it
-        ├── "menu"
-        ├── "level_select"
-        ├── "profile"
-        ├── "shop"
-        ├── "editor"
-        ├── "playing"       ← HUD: score, coins, mode, timer
-        ├── "gameover"
-        └── "level_complete"
+└── class GameWidget        ← THE WHOLE GAME ⭐
+    │
+    ├── __init__()          ← set up state, keyboard, start clock
+    ├── _reset_game()       ← reset player/obstacles for a new game
+    ├── _on_key_down()      ← keyboard input
+    ├── on_touch_down()     ← tap/click input (works on iPhone too!)
+    ├── _jump()             ← fires on tap / SPACE
+    ├── _tick()             ← called 60 times per second
+    ├── _update()           ← move everything, check collisions, count score
+    └── _draw()             ← draw background, ground, obstacles, player, UI
 ```
 
 ### The Game Loop (60 times per second)
 
 ```
-while True:
-    1. Read input   ← SPACE, mouse click, finger tap
-    2. Update       ← move player + obstacles, check collisions, add score
-    3. Draw         ← clear screen, draw everything
-    4. Wait         ← pause until 1/60 s has passed
+Clock calls _tick() →
+    1. _update()  ← move player + obstacles, check collisions
+    2. _draw()    ← clear canvas, draw everything
+```
+
+### How Kivy drawing works
+
+```python
+with self.canvas:
+    Color(1.0, 0.0, 0.0, 1)              # set color to red (R, G, B, A)
+    Rectangle(pos=(x, y), size=(w, h))   # draw a filled rectangle
+    Triangle(points=[x1,y1, x2,y2, x3,y3])  # draw a filled triangle
+    Line(points=[x1,y1, x2,y2], width=2)    # draw a line
 ```
 
 ---
 
 ## 6 · Deploy to iPhone / iPad
 
-> 🍎 Turn your Python game into a real iPhone app using **BeeWare Briefcase**.  
-> You need a free Apple ID — no $99/year developer account required.
+> 🍎 Turn your Python game into a real iPhone/iPad app using **BeeWare Briefcase** + **Kivy**.  
+> You need a **free Apple ID** — no $99/year developer account required.
 
 ---
 
@@ -363,8 +286,8 @@ while True:
 | Tool | How to get it |
 |------|--------------|
 | **Xcode** (~9 GB) | Mac App Store → search Xcode → Install |
-| **iOS Runtime** (~9 GB) | Xcode will prompt you the first time — click Download & Install |
-| **Apple ID** | Already have one if you use an iPhone |
+| **iOS Runtime** (~9 GB) | Xcode will prompt you the first time |
+| **Apple ID** | Any Gmail or iCloud account |
 | **briefcase** | `uv pip install briefcase` (see below) |
 
 > ⏱ Plan for 1–2 hours the first time — mostly waiting for downloads.
@@ -373,7 +296,7 @@ while True:
 
 ### Step 1 — Install Xcode
 
-1. Open **App Store** → search **Xcode** → Install
+1. **App Store** → search **Xcode** → Install
 2. After installing, open Xcode once (it installs extra components)
 3. In Terminal:
    ```bash
@@ -386,7 +309,10 @@ while True:
 ### Step 2 — Sign in with your Apple ID in Xcode
 
 1. Open **Xcode** → menu **Xcode** → **Settings** → **Accounts** tab
-2. Click **+** → **Apple ID** → sign in
+2. Click **+** → **Apple ID** → sign in with any Apple ID
+
+> 💡 **You can use any Apple ID** — it doesn't need to match GitHub or iCloud on the iPhone.  
+> The Apple ID is only used for the developer certificate.
 
 ---
 
@@ -401,88 +327,21 @@ uv pip install "pip==23.3.2"   # required — newer pip crashes on iOS cross-com
 
 ---
 
-### Step 4 — Update pyproject.toml
+### Step 4 — Check pyproject.toml iOS section
 
-Make sure your `pyproject.toml` matches this **exactly** (copy-paste the whole file):
+Make sure your `pyproject.toml` has this iOS section (it already does if you cloned the repo):
 
 ```toml
-[project]
-name = "geometrydash"
-version = "0.1.0"
-description = "A simple Geometry Dash game in Python"
-readme = "README.md"
-requires-python = ">=3.10"
-dependencies = []
-
-[project.scripts]
-geometrydash = "geometrydash.game:main"
-
-[build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.briefcase]
-project_name = "Geometry Dash"
-bundle = "com.filip.geometrydash"
-version = "0.1.0"
-url = "https://github.com/matusfil-ux/geometrydash"
-license = "MIT"
-author = "Filip"
-author_email = "matus.fil@gmail.com"
-
-[tool.briefcase.app.geometrydash]
-formal_name = "Geometry Dash"
-description = "Jump over spikes, earn coins, build levels!"
-sources = ["src/geometrydash"]
-requires = []
-
-[tool.briefcase.app.geometrydash.macOS]
-requires = [
-    "pygame-ce>=2.5.0",
-    "numpy>=1.24.0",
-]
-
 [tool.briefcase.app.geometrydash.iOS]
-requires = []
+requires = [
+    "kivy",
+]
 minimum_os_version = "16.0"
 ```
 
-> ⚠️ `dependencies = []` is intentional — briefcase would otherwise try to install `pygame-ce` on iOS where there are no wheels. Install it manually for Mac dev with `uv pip install pygame-ce numpy`.
-
 ---
 
-### Step 5 — Add touch controls to game.py
-
-iPhones have no keyboard — finger taps must make the player jump. Open `game.py` and find the jump detection:
-
-```python
-jump = (
-    (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
-    or event.type == pygame.MOUSEBUTTONDOWN
-)
-```
-
-**Add one line:**
-
-```python
-jump = (
-    (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
-    or event.type == pygame.MOUSEBUTTONDOWN
-    or event.type == pygame.FINGERDOWN        # ← finger tap on touchscreen
-)
-```
-
-Save (`Cmd+S`), then reinstall:
-```bash
-uv pip install -e .
-```
-
----
-
-### Step 6 — Create the Xcode project
+### Step 5 — Create the Xcode project
 
 ```bash
 briefcase create iOS
@@ -495,7 +354,7 @@ Expected output ends with:
 
 ---
 
-### Step 7 — Open in Xcode
+### Step 6 — Open in Xcode
 
 ```bash
 open "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"
@@ -503,68 +362,51 @@ open "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"
 
 ---
 
-### Step 8 — Connect your iPhone
+### Step 7 — Connect your iPhone or iPad
 
-1. Plug your iPhone into the Mac with a USB cable
-2. On your iPhone: tap **Trust** when asked "Trust This Computer?"
+1. Plug your device into the Mac with a USB cable
+2. On the device: tap **Trust** when asked "Trust This Computer?"
 3. Wait ~10 seconds for Xcode to recognise the device
 
 ---
 
-### Step 9 — Select your device and fix signing
+### Step 8 — Select device and fix signing
 
-1. In Xcode **top bar** — click the device selector and pick your **iPhone** (not a simulator)
-2. In the **left panel** click the blue **Geometry Dash** project icon
-3. Click the **Geometry Dash** target → **Signing & Capabilities** tab
-4. Under **Team** — click the dropdown → click **"Add an Account..."**
-5. Sign in with your Apple ID (the Gmail you used for `matusfil-ux`)
-6. After adding, select **your personal team** from the Team dropdown
-7. Press `Cmd+R`
+1. In Xcode **top bar** → click device selector → pick your **iPhone/iPad**
+2. Left panel → click blue **Geometry Dash** project icon
+3. **Geometry Dash** target → **Signing & Capabilities** tab
+4. **Team** dropdown → **"Add an Account..."**
+5. Sign in with **any Apple ID** you want to use
+6. Select **that account's personal team**
+7. Press **`Cmd+R`**
 
-> ⚠️ **If Xcode asks for a Keychain password** (e.g. "codesign wants access to key Apple Development: Rastislav Matus"):
-> - This happens when the certificate belongs to a different user account on the Mac
-> - **Fix:** In **Team** dropdown → **Add an Account...** → add **your own** Apple ID → select your team
-> - Your certificate goes into your own keychain → no password conflict
+> ⚠️ **If Xcode asks for Keychain password (e.g. "Apple Development: Rastislav Matus")**:
+> - The certificate belongs to a different Mac user account
+> - Fix: add **your own** Apple ID → Xcode creates a new cert in your keychain → no conflict
 
-> ⚠️ **If "This Apple account cannot be used for development":**
-> - The Mac user account needs admin rights
-> - Fix: run Xcode as admin:
->   ```bash
->   sudo open -a Xcode "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"
->   ```
+> ⚠️ **To switch Apple IDs**: Team dropdown → Add an Account... → pick different account
 
 ---
 
-### Step 10 — Install iOS Device Support (first time)
+### Step 9 — Install iOS Device Support (first time)
 
-When you press `Cmd+R` for the first time, Xcode may prompt:
-
-> *"iOS Device Support files for iPhone (iOS xx.x) are required"*
-
-Click **Download and Install** (~9 GB, one-time per iOS version).  
-This is required and cannot be skipped.
+If Xcode prompts *"iOS Device Support files required"* → click **Download and Install** (~9 GB, one-time).
 
 ---
 
-### Step 11 — Build and run 🚀
+### Step 10 — Build and run 🚀
 
-Press **`Cmd+R`** in Xcode.
-
-Xcode will:
-1. Compile the app
-2. Install it on your iPhone
-3. Launch it automatically
+Press **`Cmd+R`** in Xcode → app compiles, installs, and launches on your device.
 
 ---
 
-### Step 12 — Trust the developer on your iPhone (first time)
+### Step 11 — Trust the developer on your device (first time)
 
-On your iPhone:
+On iPhone/iPad:
 1. **Settings** → **General** → **VPN & Device Management**
-2. Tap your Apple ID under **Developer App**
-3. Tap **Trust** → **Trust** again
+2. Tap your Apple ID → **Trust** → **Trust** again
 
-Open the app from your home screen — it works! 🎉
+Open app from home screen → it runs! 🎉
 
 ---
 
@@ -574,13 +416,13 @@ Open the app from your home screen — it works! 🎉
 briefcase update iOS
 ```
 
-Then press `Cmd+R` in Xcode again.
+Then press `Cmd+R` in Xcode.
 
 ---
 
 ### Re-sign after 7 days
 
-Free Apple IDs expire after 7 days. Just press `Cmd+R` in Xcode again — it re-signs automatically.
+Free Apple IDs expire after 7 days. Press `Cmd+R` in Xcode — it re-signs automatically.
 
 ---
 
@@ -601,11 +443,11 @@ Free Apple IDs expire after 7 days. Just press `Cmd+R` in Xcode again — it re-
 
 ---
 
-### ❌ `ModuleNotFoundError: No module named 'pygame'`
+### ❌ `ModuleNotFoundError: No module named 'kivy'`
 
 ```bash
 source .venv/bin/activate
-uv pip install pygame-ce numpy
+uv pip install "kivy[base]"
 python -m geometrydash
 ```
 
@@ -620,22 +462,12 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ---
 
-### ❌ `uv venv --python 3.11` fails — Python 3.11 not found
+### ❌ `uv venv --python 3.11` fails
 
 ```bash
 brew install python@3.11
-uv venv --python 3.11.15
+uv venv --python 3.11
 ```
-
----
-
-### ❌ `briefcase create iOS` — `No matching distribution found for pygame-ce`
-
-Your `pyproject.toml` `dependencies` section still lists `pygame-ce`. Set it to empty:
-```toml
-dependencies = []
-```
-And re-run `briefcase create iOS`.
 
 ---
 
@@ -650,46 +482,42 @@ briefcase create iOS
 
 ---
 
-### ❌ `briefcase build iOS` — `No available simulator runtimes`
-
-This only affects the simulator. **Use the real iPhone instead** — open the Xcode project and select your phone in the device selector. No simulator runtime needed for real devices.
-
----
-
 ### ❌ Xcode — `This Apple account cannot be used for development`
 
-The Mac user account is not an administrator. Run Xcode with admin rights:
+The Mac user is not an admin. Run Xcode with admin rights:
 ```bash
 sudo open -a Xcode "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"
 ```
 
 ---
 
-### ❌ Xcode — `Signing certificate not found`
+### ❌ Xcode — Keychain password dialog appears
 
-1. Xcode → **Settings** → **Accounts** → select your Apple ID → **Manage Certificates**
-2. Click **+** → **Apple Development**
-3. Try `Cmd+R` again
+The certificate belongs to a different Mac user account. Fix:
+- Xcode → **Signing & Capabilities** → **Team** → **Add an Account...** → add your own Apple ID → select your team
 
 ---
 
 ### ❌ iPhone shows "Untrusted Developer"
 
-Settings → General → VPN & Device Management → tap Apple ID → **Trust**
+**Settings** → **General** → **VPN & Device Management** → tap Apple ID → **Trust**
 
 ---
 
-### ❌ Window opens but nothing happens
+### ❌ App starts but immediately crashes on iPhone
 
-Press **ENTER** on the main menu, then **ENTER** again on level select.
-
----
-
-### ❌ `(.venv)` not showing in Terminal
-
+Check Xcode console (bottom panel) for red text. Most common cause: kivy not bundled.
+Run:
 ```bash
-source .venv/bin/activate
+briefcase update iOS --update-requirements
 ```
+Then `Cmd+R` in Xcode.
+
+---
+
+### ❌ Window opens but game doesn't respond to keyboard
+
+Make sure you clicked on the game window first to give it focus, then press SPACE or ENTER.
 
 ---
 
@@ -699,7 +527,7 @@ source .venv/bin/activate
 |------|---------|
 | Create venv (Python 3.11) | `uv venv --python 3.11` |
 | Activate venv | `source .venv/bin/activate` |
-| Install game deps | `uv pip install pygame-ce numpy && uv pip install -e .` |
+| Install game deps | `uv pip install "kivy[base]" && uv pip install -e .` |
 | **Run the game** | `python -m geometrydash` |
 | Edit the game | `code src/geometrydash/game.py` |
 | iOS: create Xcode project | `briefcase create iOS` |

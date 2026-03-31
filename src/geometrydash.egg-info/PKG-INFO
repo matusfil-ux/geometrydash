@@ -62,7 +62,7 @@ uv --version
 ### Step 2 — Clone the repo
 
 ```bash
-git clone https://github.com/matusfil-ux/geometrydash
+git clone https://github.com/merck-gen/geometrydash
 cd geometrydash
 ```
 
@@ -412,7 +412,7 @@ The guide covers:
 
 | Step | Command |
 |------|---------|
-| Install Briefcase | `uv pip install briefcase` |
+| Install Briefcase | `pip install briefcase` |
 | Create iOS project | `briefcase create iOS` |
 | Build | `briefcase build iOS` |
 | Run in Simulator | `briefcase run iOS` |
