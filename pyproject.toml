@@ -4,10 +4,12 @@ version = "0.1.0"
 description = "A simple Geometry Dash game in Python"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "toga>=0.4.5",
+]
 
 [project.scripts]
-geometrydash = "geometrydash.game:main"
+geometrydash = "geometrydash.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
@@ -16,35 +18,35 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-# ── BeeWare Briefcase config ───────────────────────────────────────────────────
-# NOTE: dependencies = [] is intentional.
-# briefcase merges [project].dependencies into platform requirements — but
-# Kivy wheels differ per platform. Install manually for Mac dev:
-#   uv pip install kivy
-#   uv pip install -e .
-
+# ── BeeWare Briefcase ──────────────────────────────────────────────────────────
 [tool.briefcase]
 project_name = "Geometry Dash"
 bundle = "com.filip.geometrydash"
 version = "0.1.0"
-url = "https://github.com/matusfil-ux/geometrydash"
-license = "MIT"
+url = "https://github.com/merck-gen/geometrydash"
+license.file = "LICENSE"
 author = "Filip"
-author_email = "matus.fil@gmail.com"
+author_email = "filip@example.com"
 
 [tool.briefcase.app.geometrydash]
 formal_name = "Geometry Dash"
 description = "Jump over spikes, earn coins, build levels!"
 sources = ["src/geometrydash"]
-requires = []
+# toga is a pure-Python wheel — pip installs it on every platform
+requires = [
+    "toga>=0.4.5",
+]
 
 [tool.briefcase.app.geometrydash.macOS]
 requires = [
-    "kivy[base]>=2.3.0",
+    "toga>=0.4.5",
+    "toga-cocoa>=0.4.5",
 ]
 
 [tool.briefcase.app.geometrydash.iOS]
+# toga-iOS is pure Python — installs fine on iOS via briefcase
 requires = [
-    "kivy",
+    "toga>=0.4.5",
+    "toga-iOS>=0.4.5",
 ]
 minimum_os_version = "16.0"

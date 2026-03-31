@@ -1,2 +1,2 @@
 [console_scripts]
-geometrydash = geometrydash.game:main
+geometrydash = geometrydash.__main__:main

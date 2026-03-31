@@ -1,393 +1,365 @@
 """
-Geometry Dash — Kivy Version
+Geometry Dash — Toga Version
 ============================
-Runs on Mac, iPhone, and iPad using Kivy.
+Runs on Mac and iPad/iPhone using BeeWare Toga + briefcase.
 
-How to play:
-  - Tap / click / press SPACE to jump
-  - Avoid the spikes!
-  - Survive the timer to complete the level
+Mac:  python -m geometrydash
+iOS:  briefcase create iOS  → open Xcode → Cmd+R
 
 How to improve:
-  - Change PLAYER_COLOR to your favourite color
-  - Change GRAVITY to adjust jump feel
-  - Change LEVELS to add new levels
-  - Add new obstacle types in the Obstacle class
+  - Change PLAYER_COLOR to your favourite color (#RRGGBB hex)
+  - Change GRAVITY / JUMP_VELOCITY to adjust jump feel
+  - Change LEVELS list to add or change levels
 """
 
+import asyncio
 import math
 import random
 
-from kivy.app import App
-from kivy.clock import Clock
-from kivy.core.window import Window
-from kivy.graphics import Color, Ellipse, Line, Rectangle, Triangle
-from kivy.uix.widget import Widget
-from kivy.core.text import Label as CoreLabel
-from kivy.graphics.texture import Texture
-
+import toga
+from toga.style import Pack
+from toga.style.pack import COLUMN
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SETTINGS
+# SETTINGS  ← start here!
 # ─────────────────────────────────────────────────────────────────────────────
 
 FPS = 60
 
-# Colors (R, G, B, A) — values 0.0 to 1.0
-BG_COLOR        = (0.12, 0.12, 0.20, 1)
-GROUND_COLOR    = (0.31, 0.31, 0.47, 1)
-PLAYER_COLOR    = (0.0,  0.78, 1.0,  1)   # cyan — change this!
-OBSTACLE_COLOR  = (1.0,  0.31, 0.31, 1)   # red
-SCORE_COLOR     = (1.0,  1.0,  0.39, 1)   # yellow
-WHITE           = (1.0,  1.0,  1.0,  1)
-LINE_COLOR      = (0.20, 0.20, 0.31, 1)
+# Colors — hex strings (#RRGGBB)
+BG_COLOR       = "#1E1E33"
+GROUND_COLOR   = "#4F4F78"
+PLAYER_COLOR   = "#00C7FF"   # cyan  — change this!
+OBSTACLE_COLOR = "#FF4F4F"   # red
+SCORE_COLOR    = "#FFFF63"   # yellow
+WHITE          = "#FFFFFF"
+LINE_COLOR     = "#333350"
+GROUND_LINE    = "#7878B4"
 
-GROUND_HEIGHT_RATIO = 0.15   # fraction of window height
-PLAYER_SIZE_RATIO   = 0.10   # fraction of window height
-PLAYER_X_RATIO      = 0.15   # fraction of window width
+GROUND_RATIO   = 0.15   # ground height = this × window height
+PLAYER_RATIO   = 0.10   # player size   = this × window height
+PLAYER_X_RATIO = 0.15   # player x      = this × window width
+OBS_W_RATIO    = 0.04   # obstacle width  (fraction of window width)
+OBS_H_RATIO    = 0.13   # obstacle height (fraction of window height)
 
-JUMP_VELOCITY   = 0.022      # fraction of window height per frame
-GRAVITY         = 0.0012     # fraction of window height per frame²
-
-OBSTACLE_WIDTH_RATIO  = 0.04
-OBSTACLE_HEIGHT_RATIO = 0.13
+JUMP_VELOCITY  = 0.022   # bigger = higher jump  (try 0.030 for moon jump)
+GRAVITY        = 0.0012  # bigger = falls faster  (try 0.0006 for floaty)
 
 LEVELS = [
-    {"name": "Level 1 · Easy",        "speed": 0.006, "min_gap": 90,  "max_gap": 150, "duration": 60},
-    {"name": "Level 2 · Medium",       "speed": 0.009, "min_gap": 70,  "max_gap": 120, "duration": 60},
-    {"name": "Level 3 · Hard",         "speed": 0.013, "min_gap": 35,  "max_gap": 65,  "duration": 50},
-    {"name": "Level 4 · Insane",       "speed": 0.015, "min_gap": 25,  "max_gap": 50,  "duration": 45},
-    {"name": "Level 5 · Demon Ride",   "speed": 0.007, "min_gap": 20,  "max_gap": 40,  "duration": 40},
+    {"name": "Level 1 · Easy",   "speed": 0.006, "min_gap": 90, "max_gap": 150, "duration": 60},
+    {"name": "Level 2 · Medium", "speed": 0.009, "min_gap": 70, "max_gap": 120, "duration": 60},
+    {"name": "Level 3 · Hard",   "speed": 0.013, "min_gap": 35, "max_gap": 65,  "duration": 50},
+    {"name": "Level 4 · Insane", "speed": 0.015, "min_gap": 25, "max_gap": 50,  "duration": 45},
+    {"name": "Level 5 · Demon",  "speed": 0.007, "min_gap": 20, "max_gap": 40,  "duration": 40},
 ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HELPER — draw text onto canvas
+# APP
 # ─────────────────────────────────────────────────────────────────────────────
 
-def make_label_texture(text: str, font_size: int, color=(1, 1, 1, 1)) -> Texture:
-    label = CoreLabel(text=text, font_size=font_size, bold=True, color=color)
-    label.refresh()
-    return label.texture
+class GeometryDashApp(toga.App):
 
+    # ── startup ───────────────────────────────────────────────────────────────
+    def startup(self):
+        self.canvas = toga.Canvas(
+            style=Pack(flex=1),
+            on_press=self._on_press,
+        )
+        box = toga.Box(style=Pack(direction=COLUMN, flex=1))
+        box.add(self.canvas)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GAME WIDGET
-# ─────────────────────────────────────────────────────────────────────────────
+        self.main_window = toga.MainWindow(title=self.formal_name)
+        self.main_window.content = box
+        self.main_window.show()
 
-class GameWidget(Widget):
+        self._init_state()
+        self.add_background_task(self._game_loop)
 
-    # ── init ──────────────────────────────────────────────────────────────────
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.state = "menu"      # menu | level_select | playing | gameover | complete
+    # ── state ─────────────────────────────────────────────────────────────────
+    def _init_state(self):
+        self.state = "menu"
         self.selected_level = 0
         self.coins = 0
         self.high_score = 0
-        self._tick_event = None
-        self._reset_game()
-        self._bind_keyboard()
-        self._schedule_tick()
+        self._reset_round()
 
-    def _bind_keyboard(self):
-        Window.bind(on_key_down=self._on_key_down)
-
-    def _schedule_tick(self):
-        if self._tick_event:
-            self._tick_event.cancel()
-        self._tick_event = Clock.schedule_interval(self._tick, 1.0 / FPS)
-
-    # ── reset ─────────────────────────────────────────────────────────────────
-    def _reset_game(self):
-        w, h = Window.width, Window.height
-        self.ground_y    = h * GROUND_HEIGHT_RATIO
-        self.player_size = h * PLAYER_SIZE_RATIO
-        self.player_x    = w * PLAYER_X_RATIO
-        self.player_y    = self.ground_y
-        self.vel_y       = 0.0
-        self.on_ground   = True
-        self.angle       = 0.0
-        self.max_jumps   = 2
-        self.jumps_left  = 2
-        self.obstacles   = []          # list of {x, base_y}
-        self.score       = 0
-        self.level_timer = 0           # frames elapsed
-        self.frames_until_next = LEVELS[self.selected_level]["min_gap"]
-        self.rng         = random.Random()
-
-    # ── keyboard ──────────────────────────────────────────────────────────────
-    def _on_key_down(self, window, key, scancode, codepoint, modifier):
-        K_SPACE  = 32
-        K_RETURN = 13
-        K_LEFT   = 276
-        K_RIGHT  = 275
-        K_ESCAPE = 27
-        K_r      = 114
-
-        if self.state == "menu":
-            if key == K_RETURN:
-                self.state = "level_select"
-        elif self.state == "level_select":
-            if key == K_LEFT:
-                self.selected_level = (self.selected_level - 1) % len(LEVELS)
-            elif key == K_RIGHT:
-                self.selected_level = (self.selected_level + 1) % len(LEVELS)
-            elif key == K_RETURN:
-                self._start_level()
-            elif key == K_ESCAPE:
-                self.state = "menu"
-        elif self.state == "playing":
-            if key == K_SPACE:
-                self._jump()
-        elif self.state in ("gameover", "complete"):
-            if key == K_r:
-                self._reset_game()
-                self._start_level()
-            elif key == K_SPACE or key == K_RETURN:
-                self.state = "menu"
-
-    def _start_level(self):
+    def _reset_round(self):
+        self.obstacles = []
+        self.score = 0
+        self.level_timer = 0
+        self.rng = random.Random()
         lvl = LEVELS[self.selected_level]
-        self.max_jumps = 3 if self.selected_level == 3 else (1 if self.selected_level == 4 else 2)
-        self._reset_game()
-        self.state = "playing"
+        self.frames_until_next = lvl["min_gap"]
+        self.player_y_frac = GROUND_RATIO
+        self.vel_y_frac = 0.0
+        self.on_ground = True
+        self.angle = 0.0
+        self.max_jumps = (3 if self.selected_level == 3
+                          else 1 if self.selected_level == 4
+                          else 2)
+        self.jumps_left = self.max_jumps
 
-    # ── touch ─────────────────────────────────────────────────────────────────
-    def on_touch_down(self, touch):
+    # ── game loop ─────────────────────────────────────────────────────────────
+    async def _game_loop(self, app, **kwargs):
+        while True:
+            if self.state == "playing":
+                self._update()
+            self._draw()
+            await asyncio.sleep(1.0 / FPS)
+
+    # ── input ─────────────────────────────────────────────────────────────────
+    def _on_press(self, widget, x, y, **kwargs):
+        w = self._w()
         if self.state == "menu":
             self.state = "level_select"
         elif self.state == "level_select":
-            w = Window.width
-            # left half = prev, right half = next; center = start
-            tx = touch.x
-            if tx < w * 0.25:
+            if x < w * 0.25:
                 self.selected_level = (self.selected_level - 1) % len(LEVELS)
-            elif tx > w * 0.75:
+                self._reset_round()
+            elif x > w * 0.75:
                 self.selected_level = (self.selected_level + 1) % len(LEVELS)
+                self._reset_round()
             else:
-                self._start_level()
+                self._reset_round()
+                self.state = "playing"
         elif self.state == "playing":
             self._jump()
         elif self.state in ("gameover", "complete"):
             self.state = "menu"
-        return True
 
-    # ── jump ──────────────────────────────────────────────────────────────────
     def _jump(self):
-        h = Window.height
         if self.on_ground:
-            self.vel_y = JUMP_VELOCITY * h
+            self.vel_y_frac = JUMP_VELOCITY
             self.on_ground = False
             self.jumps_left = self.max_jumps - 1
         elif self.jumps_left > 0:
-            self.vel_y = JUMP_VELOCITY * h
+            self.vel_y_frac = JUMP_VELOCITY
             self.jumps_left -= 1
 
-    # ── collision ─────────────────────────────────────────────────────────────
-    def _player_rect(self):
-        m = self.player_size * 0.1
-        return (self.player_x + m, self.player_y + m,
-                self.player_size - 2*m, self.player_size - 2*m)
-
-    def _obs_rect(self, obs):
-        w  = Window.width  * OBSTACLE_WIDTH_RATIO
-        h  = Window.height * OBSTACLE_HEIGHT_RATIO
-        mx = w * 0.15
-        return (obs["x"] + mx, obs["base_y"], w - 2*mx, h * 0.6)
-
-    @staticmethod
-    def _rects_overlap(r1, r2):
-        x1, y1, w1, h1 = r1
-        x2, y2, w2, h2 = r2
-        return x1 < x2+w2 and x1+w1 > x2 and y1 < y2+h2 and y1+h1 > y2
-
-    # ── tick (game loop) ──────────────────────────────────────────────────────
-    def _tick(self, dt):
-        if self.state == "playing":
-            self._update()
-        self._draw()
-
+    # ── update ────────────────────────────────────────────────────────────────
     def _update(self):
-        w, h   = Window.width, Window.height
-        level  = LEVELS[self.selected_level]
-        speed  = level["speed"] * w
+        lvl = LEVELS[self.selected_level]
+        speed_frac = lvl["speed"]
 
-        # player physics
-        self.vel_y   -= GRAVITY * h
-        self.player_y += self.vel_y
+        self.vel_y_frac -= GRAVITY
+        self.player_y_frac += self.vel_y_frac
         if not self.on_ground:
             self.angle -= 5
 
-        if self.player_y <= self.ground_y:
-            self.player_y  = self.ground_y
-            self.vel_y     = 0.0
+        if self.player_y_frac <= GROUND_RATIO:
+            self.player_y_frac = GROUND_RATIO
+            self.vel_y_frac = 0.0
             self.on_ground = True
             self.jumps_left = self.max_jumps
-            self.angle     = 0.0
+            self.angle = 0.0
 
         # spawn obstacles
         self.frames_until_next -= 1
         if self.frames_until_next <= 0:
-            self.obstacles.append({"x": w + 10, "base_y": self.ground_y, "passed": False})
+            self.obstacles.append({"x": 1.05, "passed": False})
             if self.rng.random() < 0.3 and self.selected_level != 4:
-                ow = w * OBSTACLE_WIDTH_RATIO
-                self.obstacles.append({"x": w + 10 + ow + 10, "base_y": self.ground_y, "passed": False})
-            self.frames_until_next = self.rng.randint(level["min_gap"], level["max_gap"])
+                self.obstacles.append({"x": 1.05 + OBS_W_RATIO + 0.01, "passed": False})
+            self.frames_until_next = self.rng.randint(lvl["min_gap"], lvl["max_gap"])
 
         # move obstacles
         for obs in self.obstacles:
-            obs["x"] -= speed
-            if not obs["passed"] and obs["x"] + w * OBSTACLE_WIDTH_RATIO < self.player_x:
+            obs["x"] -= speed_frac
+            if not obs["passed"] and obs["x"] + OBS_W_RATIO < PLAYER_X_RATIO:
                 obs["passed"] = True
                 self.score += 1
                 self.coins += 1
 
-        # remove off-screen
-        self.obstacles = [o for o in self.obstacles if o["x"] + w * OBSTACLE_WIDTH_RATIO > 0]
+        self.obstacles = [o for o in self.obstacles if o["x"] + OBS_W_RATIO > 0]
 
-        # collision detection
-        pr = self._player_rect()
+        # collision
+        ps = PLAYER_RATIO
+        m = ps * 0.1
+        pr = (PLAYER_X_RATIO + m, self.player_y_frac + m, ps - 2*m, ps - 2*m)
         for obs in self.obstacles:
-            if self._rects_overlap(pr, self._obs_rect(obs)):
+            om = OBS_W_RATIO * 0.15
+            orect = (obs["x"] + om, GROUND_RATIO, OBS_W_RATIO - 2*om, OBS_H_RATIO * 0.6)
+            if self._overlap(pr, orect):
                 if self.score > self.high_score:
                     self.high_score = self.score
                 self.state = "gameover"
                 return
 
-        # level timer
+        # timer
         self.level_timer += 1
-        duration = level["duration"]
-        if self.level_timer >= FPS * duration:
+        if self.level_timer >= FPS * lvl["duration"]:
             if self.score > self.high_score:
                 self.high_score = self.score
             self.state = "complete"
 
+    @staticmethod
+    def _overlap(r1, r2):
+        x1, y1, w1, h1 = r1
+        x2, y2, w2, h2 = r2
+        return x1 < x2+w2 and x1+w1 > x2 and y1 < y2+h2 and y1+h1 > y2
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+    def _w(self):
+        v = self.canvas.layout.content_width
+        return v if v and v > 10 else 800
+
+    def _h(self):
+        v = self.canvas.layout.content_height
+        return v if v and v > 10 else 600
+
     # ── draw ──────────────────────────────────────────────────────────────────
     def _draw(self):
-        w, h = Window.width, Window.height
-        self.canvas.clear()
+        W, H = self._w(), self._h()
+        ctx = self.canvas.context
+        ctx.clear()
 
-        with self.canvas:
-            # Background
-            Color(*BG_COLOR)
-            Rectangle(pos=(0, 0), size=(w, h))
+        # Background
+        ctx.fill(color=BG_COLOR)
+        ctx.rect(0, 0, W, H)
 
-            # Scrolling lines (decorative)
-            Color(*LINE_COLOR)
-            for i in range(0, w + 200, 200):
-                x_off = (self.level_timer * 3) % 200
-                lx = i - x_off
-                Line(points=[lx - 200, 0, lx, h * 0.85], width=1)
+        # Scrolling diagonal lines
+        ctx.stroke(color=LINE_COLOR, line_width=1)
+        for i in range(-1, int(W / 200) + 3):
+            x_off = (self.level_timer * 3) % 200
+            lx = i * 200 - x_off
+            ctx.begin_path()
+            ctx.move_to(lx, 0)
+            ctx.line_to(lx + 200, H * 0.85)
 
-            # Ground
-            Color(*GROUND_COLOR)
-            Rectangle(pos=(0, 0), size=(w, self.ground_y))
-            Color(0.47, 0.47, 0.70, 1)
-            Line(points=[0, self.ground_y, w, self.ground_y], width=2)
+        # Ground fill
+        gy = H * GROUND_RATIO
+        ctx.fill(color=GROUND_COLOR)
+        ctx.rect(0, 0, W, gy)
 
-            # Obstacles (triangles)
-            ow = w * OBSTACLE_WIDTH_RATIO
-            oh = h * OBSTACLE_HEIGHT_RATIO
-            Color(*OBSTACLE_COLOR)
-            for obs in self.obstacles:
-                ox, oy = obs["x"], obs["base_y"]
-                tip = (ox + ow / 2, oy + oh)
-                bl  = (ox, oy)
-                br  = (ox + ow, oy)
-                Triangle(points=[tip[0], tip[1], bl[0], bl[1], br[0], br[1]])
-                Color(0, 0, 0, 1)
-                Line(points=[tip[0], tip[1], bl[0], bl[1], br[0], br[1], tip[0], tip[1]], width=1.5)
-                Color(*OBSTACLE_COLOR)
+        # Ground line
+        ctx.stroke(color=GROUND_LINE, line_width=2)
+        ctx.begin_path()
+        ctx.move_to(0, gy)
+        ctx.line_to(W, gy)
 
-            # Player (rotated square drawn as lines)
-            ps   = self.player_size
-            px   = self.player_x
-            py   = self.player_y
-            cx   = px + ps / 2
-            cy   = py + ps / 2
-            ang  = math.radians(self.angle)
-            corners = [(-ps/2, -ps/2), (ps/2, -ps/2), (ps/2, ps/2), (-ps/2, ps/2)]
-            rotated = []
-            for rx, ry in corners:
-                rr = math.sqrt(rx*rx + ry*ry)
-                a  = math.atan2(ry, rx) + ang
-                rotated.append((cx + rr*math.cos(a), cy + rr*math.sin(a)))
-            Color(*PLAYER_COLOR)
-            pts = []
-            for vx, vy in rotated:
-                pts += [vx, vy]
-            pts += [rotated[0][0], rotated[0][1]]
-            # fill
-            # Use a quad approximation: draw as 4-point polygon via two triangles
-            r = rotated
-            Triangle(points=[r[0][0], r[0][1], r[1][0], r[1][1], r[2][0], r[2][1]])
-            Triangle(points=[r[0][0], r[0][1], r[2][0], r[2][1], r[3][0], r[3][1]])
+        # Obstacles (triangles)
+        ow = W * OBS_W_RATIO
+        oh = H * OBS_H_RATIO
+        for obs in self.obstacles:
+            ox = obs["x"] * W
+            oy = GROUND_RATIO * H
+            tip_x = ox + ow / 2
+            tip_y = oy + oh
+            # filled triangle
+            ctx.fill(color=OBSTACLE_COLOR)
+            ctx.begin_path()
+            ctx.move_to(tip_x, tip_y)
+            ctx.line_to(ox, oy)
+            ctx.line_to(ox + ow, oy)
+            ctx.close_path()
             # outline
-            Color(1, 1, 1, 0.6)
-            Line(points=pts, width=1.5)
-            # cross
-            mid_top    = ((r[0][0]+r[1][0])/2, (r[0][1]+r[1][1])/2)
-            mid_bottom = ((r[2][0]+r[3][0])/2, (r[2][1]+r[3][1])/2)
-            mid_left   = ((r[0][0]+r[3][0])/2, (r[0][1]+r[3][1])/2)
-            mid_right  = ((r[1][0]+r[2][0])/2, (r[1][1]+r[2][1])/2)
-            Line(points=[mid_top[0], mid_top[1], mid_bottom[0], mid_bottom[1]], width=1)
-            Line(points=[mid_left[0], mid_left[1], mid_right[0], mid_right[1]], width=1)
+            ctx.stroke(color="#000000", line_width=1.5)
+            ctx.begin_path()
+            ctx.move_to(tip_x, tip_y)
+            ctx.line_to(ox, oy)
+            ctx.line_to(ox + ow, oy)
+            ctx.close_path()
 
-        # ── UI overlays ───────────────────────────────────────────────────────
-        with self.canvas:
-            if self.state == "menu":
-                self._blit_text("GEOMETRY DASH", int(h*0.10), SCORE_COLOR, w/2, h*0.70, center=True)
-                self._blit_text("TAP to continue", int(h*0.04), WHITE, w/2, h*0.55, center=True)
-                self._blit_text(f"Coins: {self.coins}   Best: {self.high_score}", int(h*0.035), WHITE, w/2, h*0.45, center=True)
+        # Player (rotated square = two triangles)
+        ps = H * PLAYER_RATIO
+        px_abs = PLAYER_X_RATIO * W
+        py_abs = self.player_y_frac * H
+        cx = px_abs + ps / 2
+        cy = py_abs + ps / 2
+        ang = math.radians(self.angle)
+        half = ps / 2
+        r = []
+        for rx, ry in [(-half, -half), (half, -half), (half, half), (-half, half)]:
+            rr = math.sqrt(rx*rx + ry*ry)
+            a = math.atan2(ry, rx) + ang
+            r.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
 
-            elif self.state == "level_select":
-                self._blit_text("SELECT LEVEL", int(h*0.07), SCORE_COLOR, w/2, h*0.80, center=True)
-                self._blit_text("◀ TAP LEFT/RIGHT to browse ▶   TAP CENTRE to play", int(h*0.035), WHITE, w/2, h*0.70, center=True)
-                for i, lvl in enumerate(LEVELS):
-                    col = SCORE_COLOR if i == self.selected_level else WHITE
-                    size_f = 0.055 if i == self.selected_level else 0.040
-                    self._blit_text(f"{'▶ ' if i == self.selected_level else '  '}{lvl['name']}", int(h*size_f), col,
-                                    w/2, h*(0.58 - i*0.10), center=True)
+        # fill — two triangles
+        ctx.fill(color=PLAYER_COLOR)
+        ctx.begin_path()
+        ctx.move_to(*r[0]); ctx.line_to(*r[1]); ctx.line_to(*r[2]); ctx.close_path()
+        ctx.begin_path()
+        ctx.move_to(*r[0]); ctx.line_to(*r[2]); ctx.line_to(*r[3]); ctx.close_path()
 
-            elif self.state == "playing":
-                self._blit_text(f"Score: {self.score}", int(h*0.045), SCORE_COLOR, 16, h*0.92)
-                self._blit_text(f"Best: {self.high_score}", int(h*0.035), WHITE, 16, h*0.87)
-                remaining = max(0, LEVELS[self.selected_level]["duration"] - self.level_timer // FPS)
-                self._blit_text(f"Time: {remaining}s", int(h*0.035), WHITE, 16, h*0.82)
-                self._blit_text(LEVELS[self.selected_level]["name"], int(h*0.030), (0.78, 0.78, 1.0, 1), 16, h*0.77)
+        # outline
+        ctx.stroke(color="#FFFFFFAA", line_width=1.5)
+        ctx.begin_path()
+        ctx.move_to(*r[0]); ctx.line_to(*r[1])
+        ctx.line_to(*r[2]); ctx.line_to(*r[3]); ctx.close_path()
 
-            elif self.state == "gameover":
-                self._blit_text("GAME OVER", int(h*0.09), OBSTACLE_COLOR, w/2, h*0.65, center=True)
-                self._blit_text(f"Score: {self.score}   Best: {self.high_score}", int(h*0.05), SCORE_COLOR, w/2, h*0.53, center=True)
-                self._blit_text("R to retry · TAP to menu", int(h*0.04), WHITE, w/2, h*0.43, center=True)
+        # cross lines
+        ctx.stroke(color="#FFFFFFAA", line_width=1)
+        mid_t  = ((r[0][0]+r[1][0])/2, (r[0][1]+r[1][1])/2)
+        mid_b  = ((r[2][0]+r[3][0])/2, (r[2][1]+r[3][1])/2)
+        mid_l  = ((r[0][0]+r[3][0])/2, (r[0][1]+r[3][1])/2)
+        mid_ri = ((r[1][0]+r[2][0])/2, (r[1][1]+r[2][1])/2)
+        ctx.begin_path(); ctx.move_to(*mid_t);  ctx.line_to(*mid_b)
+        ctx.begin_path(); ctx.move_to(*mid_l);  ctx.line_to(*mid_ri)
 
-            elif self.state == "complete":
-                self._blit_text("LEVEL COMPLETE!", int(h*0.09), (0.39, 1.0, 0.39, 1), w/2, h*0.65, center=True)
-                self._blit_text(f"Score: {self.score}   Best: {self.high_score}", int(h*0.05), SCORE_COLOR, w/2, h*0.53, center=True)
-                self._blit_text("R to retry · TAP to menu", int(h*0.04), WHITE, w/2, h*0.43, center=True)
+        # ── UI text ──────────────────────────────────────────────────────────
+        fnt_big   = toga.Font("sans-serif", int(H * 0.09))
+        fnt_med   = toga.Font("sans-serif", int(H * 0.05))
+        fnt_small = toga.Font("sans-serif", int(H * 0.035))
+        fnt_tiny  = toga.Font("sans-serif", int(H * 0.030))
 
-    def _blit_text(self, text, font_size, color, x, y, center=False):
-        tex = make_label_texture(text, font_size, color)
+        if self.state == "menu":
+            self._text(ctx, "GEOMETRY DASH",  W/2, H*0.68, fnt_big,   SCORE_COLOR, center=True)
+            self._text(ctx, "TAP to continue", W/2, H*0.55, fnt_small, WHITE,       center=True)
+            self._text(ctx, f"Coins: {self.coins}   Best: {self.high_score}",
+                       W/2, H*0.45, fnt_small, WHITE, center=True)
+
+        elif self.state == "level_select":
+            self._text(ctx, "SELECT LEVEL", W/2, H*0.82, fnt_med,   SCORE_COLOR, center=True)
+            self._text(ctx, "◀ tap left/right ▶   tap centre to play",
+                       W/2, H*0.73, fnt_small, WHITE, center=True)
+            for i, lvl in enumerate(LEVELS):
+                col  = SCORE_COLOR if i == self.selected_level else WHITE
+                fnt  = toga.Font("sans-serif", int(H * (0.048 if i == self.selected_level else 0.036)))
+                mark = "▶ " if i == self.selected_level else "  "
+                self._text(ctx, f"{mark}{lvl['name']}", W/2, H*(0.60 - i*0.10), fnt, col, center=True)
+
+        elif self.state == "playing":
+            self._text(ctx, f"Score: {self.score}",     16, H*0.93, fnt_med,   SCORE_COLOR)
+            self._text(ctx, f"Best:  {self.high_score}", 16, H*0.87, fnt_small, WHITE)
+            remaining = max(0, LEVELS[self.selected_level]["duration"] - self.level_timer // FPS)
+            self._text(ctx, f"Time: {remaining}s",       16, H*0.81, fnt_small, WHITE)
+            self._text(ctx, LEVELS[self.selected_level]["name"], 16, H*0.75, fnt_tiny, "#C7C7FF")
+
+        elif self.state == "gameover":
+            self._text(ctx, "GAME OVER",  W/2, H*0.65, fnt_big, OBSTACLE_COLOR, center=True)
+            self._text(ctx, f"Score: {self.score}   Best: {self.high_score}",
+                       W/2, H*0.52, fnt_med, SCORE_COLOR, center=True)
+            self._text(ctx, "TAP to menu", W/2, H*0.42, fnt_small, WHITE, center=True)
+
+        elif self.state == "complete":
+            self._text(ctx, "LEVEL COMPLETE!", W/2, H*0.65, fnt_big, "#63FF63", center=True)
+            self._text(ctx, f"Score: {self.score}   Best: {self.high_score}",
+                       W/2, H*0.52, fnt_med, SCORE_COLOR, center=True)
+            self._text(ctx, "TAP to menu", W/2, H*0.42, fnt_small, WHITE, center=True)
+
+        self.canvas.redraw()
+
+    def _text(self, ctx, text, x, y, font, color, center=False):
         if center:
-            x -= tex.width / 2
-            y -= tex.height / 2
-        Color(1, 1, 1, 1)
-        Rectangle(texture=tex, pos=(x, y), size=(tex.width, tex.height))
+            # estimate center offset (~0.35 × font_size per char wide, ~1 line tall)
+            est_w = len(text) * font.size * 0.55
+            est_h = font.size
+            x -= est_w / 2
+            y -= est_h / 2
+        ctx.fill(color=color)
+        ctx.write_text(text, x, y, font=font)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# KIVY APP
+# ENTRY POINT
 # ─────────────────────────────────────────────────────────────────────────────
-
-class GeometryDashApp(App):
-    def build(self):
-        Window.clearcolor = (0.12, 0.12, 0.20, 1)
-        return GameWidget()
-
 
 def main():
-    GeometryDashApp().run()
+    return GeometryDashApp(
+        "Geometry Dash",
+        "com.filip.geometrydash",
+    )
 
 
 if __name__ == "__main__":
-    main()
+    main().main_loop()

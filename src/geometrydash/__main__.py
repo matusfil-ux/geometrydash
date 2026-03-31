@@ -2,11 +2,12 @@
 """
 Run the Geometry Dash game:
 
-    python -m geometrydash
+    python -m geometrydash      ← run directly in terminal
+    briefcase run macOS         ← run as bundled .app
 """
 
-from geometrydash.game import main
+from geometrydash.game import main  # returns GeometryDashApp instance
 
 
 if __name__ == "__main__":
-    main()
+    main().main_loop()
