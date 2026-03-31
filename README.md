@@ -1,6 +1,6 @@
 # 🎮 Geometry Dash — Python Game
 
-**Version:** 0.1.0 · **Python:** 3.11 · **Package manager:** [uv](https://github.com/astral-sh/uv) · **Framework:** [Kivy](https://kivy.org)
+**Version:** 0.1.0 · **Python:** 3.12+ · **Package manager:** [uv](https://github.com/astral-sh/uv) · **Framework:** [Kivy](https://kivy.org)
 
 > Jump over spikes, earn coins, unlock cube colors, build your own levels —  
 > then open `game.py` and make it even better!  
@@ -52,16 +52,17 @@ cd geometrydash
 
 ---
 
-### Step 3 — Create a virtual environment with Python 3.11
+### Step 3 — Create a virtual environment
 
 ```bash
-uv venv --python 3.11
+uv venv
 ```
 
-If Python 3.11 is not installed:
+> 💡 `uv venv` automatically picks the latest installed Python (3.12 or 3.13 — both work).
+
+If you want a specific version:
 ```bash
-brew install python@3.11
-uv venv --python 3.11
+uv venv --python 3.12
 ```
 
 ---
@@ -316,13 +317,12 @@ with self.canvas:
 
 ---
 
-### Step 3 — Install briefcase and downgrade pip
+### Step 3 — Install briefcase
 
 ```bash
 cd geometrydash
 source .venv/bin/activate
 uv pip install briefcase
-uv pip install "pip==23.3.2"   # required — newer pip crashes on iOS cross-compilation
 ```
 
 ---
@@ -431,7 +431,6 @@ Free Apple IDs expire after 7 days. Press `Cmd+R` in Xcode — it re-signs autom
 | Task | Command |
 |------|---------|
 | Install briefcase | `uv pip install briefcase` |
-| Downgrade pip (required) | `uv pip install "pip==23.3.2"` |
 | Create Xcode project | `briefcase create iOS` |
 | Open in Xcode | `open "build/geometrydash/ios/xcode/Geometry Dash.xcodeproj"` |
 | Build & run | `Cmd+R` in Xcode |
@@ -462,22 +461,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ---
 
-### ❌ `uv venv --python 3.11` fails
+### ❌ `uv venv` fails — no Python found
 
 ```bash
-brew install python@3.11
-uv venv --python 3.11
-```
-
----
-
-### ❌ `briefcase create iOS` — `AttributeError: module 'platform' has no attribute 'ios_ver'`
-
-pip version is too new. Downgrade:
-```bash
-uv pip install "pip==23.3.2"
-rm -rf build
-briefcase create iOS
+brew install python@3.12
+uv venv
 ```
 
 ---
@@ -525,7 +513,7 @@ Make sure you clicked on the game window first to give it focus, then press SPAC
 
 | Task | Command |
 |------|---------|
-| Create venv (Python 3.11) | `uv venv --python 3.11` |
+| Create venv | `uv venv` |
 | Activate venv | `source .venv/bin/activate` |
 | Install game deps | `uv pip install "kivy[base]" && uv pip install -e .` |
 | **Run the game** | `python -m geometrydash` |

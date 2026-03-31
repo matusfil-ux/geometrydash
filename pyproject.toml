@@ -3,7 +3,7 @@ name = "geometrydash"
 version = "0.1.0"
 description = "A simple Geometry Dash game in Python"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
@@ -45,6 +45,6 @@ requires = [
 
 [tool.briefcase.app.geometrydash.iOS]
 requires = [
-    "kivy",
+    "kivy==2.3.1",
 ]
 minimum_os_version = "16.0"
