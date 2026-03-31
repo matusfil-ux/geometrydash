@@ -1,0 +1,20 @@
+[project]
+name = "geometrydash"
+version = "0.1.0"
+description = "A simple Geometry Dash game in Python"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pygame>=2.5.0",
+    "numpy>=1.24.0",
+]
+
+[project.scripts]
+geometrydash = "geometrydash.game:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

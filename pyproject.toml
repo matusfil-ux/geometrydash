@@ -5,7 +5,7 @@ description = "A simple Geometry Dash game in Python"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "pygame>=2.5.0",
+    "pygame-ce>=2.5.0",
     "numpy>=1.24.0",
 ]
 
@@ -18,3 +18,26 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# ── BeeWare Briefcase iOS config ──────────────────────────────────────────────
+
+[tool.briefcase]
+project_name = "Geometry Dash"
+bundle = "com.filip.geometrydash"
+version = "0.1.0"
+url = "https://github.com/matusfil-ux/geometrydash"
+license = "MIT"
+author = "Filip"
+author_email = "matus.fil@gmail.com"
+
+[tool.briefcase.app.geometrydash]
+formal_name = "Geometry Dash"
+description = "Jump over spikes, earn coins, build levels!"
+sources = ["src/geometrydash"]
+requires = [
+    "pygame-ce>=2.5.0",
+    "numpy>=1.24.0",
+]
+
+[tool.briefcase.app.geometrydash.iOS]
+requires = []
