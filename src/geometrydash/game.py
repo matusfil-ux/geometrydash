@@ -308,8 +308,13 @@ def run_game() -> None:
     """Launch and run the Geometry Dash game."""
     pygame.init()
     pygame.mixer.init()
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("Geometry Dash")
+    
+    # Update window dimensions to match fullscreen
+    global WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y
+    WINDOW_WIDTH, WINDOW_HEIGHT = screen.get_size()
+    GROUND_Y = WINDOW_HEIGHT - GROUND_HEIGHT
     clock = pygame.time.Clock()
     
     death_sound = generate_death_sound()
@@ -375,6 +380,10 @@ def run_game() -> None:
         # ── Events ────────────────────────────────────────────────────────────
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
                 pygame.quit()
                 sys.exit()
 
@@ -719,6 +728,10 @@ def run_game() -> None:
                 pygame.draw.line(screen, (80, 80, 100), (x, EDITOR_GRID_Y[0]), (x, EDITOR_GRID_Y[1]), 1)
             for y in range(EDITOR_GRID_Y[0], EDITOR_GRID_Y[1] + 1, EDITOR_CELL_SIZE):
                 pygame.draw.line(screen, (80, 80, 100), (EDITOR_GRID_X[0], y), (EDITOR_GRID_X[1], y), 1)
+
+            # draw ground line
+            pygame.draw.line(screen, GROUND_COLOR, (EDITOR_GRID_X[0], GROUND_Y), (EDITOR_GRID_X[1], GROUND_Y), 3)
+            draw_text(screen, "GROUND", 14, EDITOR_GRID_X[0] + 10, GROUND_Y - 5, GROUND_COLOR)
 
             pygame.draw.circle(screen, (255, 255, 255), editor_cursor, 6)
             for obj in editor_objects:
