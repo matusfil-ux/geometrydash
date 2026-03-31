@@ -66,8 +66,7 @@ LEVELS = [
 # ─────────────────────────────────────────────────────────────────────────────
 
 def make_label_texture(text: str, font_size: int, color=(1, 1, 1, 1)) -> Texture:
-    label = CoreLabel(text=text, font_size=font_size, bold=True,
-                      color=color, font_name="Roboto")
+    label = CoreLabel(text=text, font_size=font_size, bold=True, color=color)
     label.refresh()
     return label.texture
 
