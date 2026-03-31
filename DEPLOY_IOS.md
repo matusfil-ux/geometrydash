@@ -77,7 +77,7 @@ Briefcase is a Python tool that packages your game for iOS.
 ```bash
 cd geometrydash
 source .venv/bin/activate
-pip install briefcase
+uv pip install briefcase
 ```
 
 Check it works:
@@ -94,8 +94,8 @@ briefcase --version
 Standard `pygame` does not work on iOS. `pygame-ce` is a drop-in replacement that does.
 
 ```bash
-pip uninstall pygame -y
-pip install pygame-ce
+uv pip uninstall pygame
+uv pip install pygame-ce
 ```
 
 > 💡 Your `game.py` does not need any changes — the `import pygame` line stays exactly the same. `pygame-ce` uses the same name.
@@ -140,7 +140,7 @@ where = ["src"]
 project_name = "Geometry Dash"
 bundle = "com.filip.geometrydash"
 version = "0.1.0"
-url = "https://github.com/merck-gen/geometrydash"
+url = "https://github.com/matusfil-ux/geometrydash"
 license = "MIT"
 author = "Filip"
 author_email = "filip@example.com"
@@ -149,13 +149,18 @@ author_email = "filip@example.com"
 formal_name = "Geometry Dash"
 description = "Jump over spikes, earn coins, build levels!"
 sources = ["src/geometrydash"]
+requires = []
+
+[tool.briefcase.app.geometrydash.macOS]
 requires = [
     "pygame-ce>=2.5.0",
     "numpy>=1.24.0",
 ]
 
 [tool.briefcase.app.geometrydash.iOS]
-requires = []
+requires = [
+    "pygame-ce",
+]
 ```
 
 ---
@@ -326,7 +331,7 @@ Takes about 30 seconds.
 
 ```bash
 source .venv/bin/activate
-pip install briefcase
+uv pip install briefcase
 ```
 
 ---
@@ -357,8 +362,8 @@ You need to set up signing in Xcode:
 Make sure you installed `pygame-ce` (not `pygame`) and updated `pyproject.toml`:
 
 ```bash
-pip uninstall pygame -y
-pip install pygame-ce
+uv pip uninstall pygame
+uv pip install pygame-ce
 ```
 
 ---
@@ -393,8 +398,8 @@ Briefcase downloads the iOS support package from the internet. Make sure you hav
 
 | Task | Command |
 |------|---------|
-| Install Briefcase | `pip install briefcase` |
-| Install pygame-ce | `pip uninstall pygame -y && pip install pygame-ce` |
+| Install Briefcase | `uv pip install briefcase` |
+| Install pygame-ce | `uv pip uninstall pygame && uv pip install pygame-ce` |
 | Create iOS project (first time) | `briefcase create iOS` |
 | Build | `briefcase build iOS` |
 | Run in Simulator | `briefcase run iOS` |

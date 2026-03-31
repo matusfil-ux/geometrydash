@@ -34,10 +34,15 @@ author_email = "matus.fil@gmail.com"
 formal_name = "Geometry Dash"
 description = "Jump over spikes, earn coins, build levels!"
 sources = ["src/geometrydash"]
+requires = []
+
+[tool.briefcase.app.geometrydash.macOS]
 requires = [
     "pygame-ce>=2.5.0",
     "numpy>=1.24.0",
 ]
 
 [tool.briefcase.app.geometrydash.iOS]
-requires = []
+requires = [
+    "pygame-ce",
+]

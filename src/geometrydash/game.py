@@ -22,7 +22,12 @@ import random
 import sys
 
 import pygame
-import numpy as np
+
+try:
+    import numpy as np
+    _NUMPY_AVAILABLE = True
+except ImportError:
+    _NUMPY_AVAILABLE = False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -280,24 +285,35 @@ def draw_text(
 
 
 def generate_death_sound() -> pygame.mixer.Sound:
-    """Generate a simple descending death sound."""
+    """Generate a simple descending death sound (works with or without numpy)."""
     sample_rate = 22050
     duration = 0.5  # seconds
     frequency_start = 800  # Hz
     frequency_end = 200  # Hz
     samples = int(sample_rate * duration)
-    
-    sound_array = np.zeros(samples, dtype=np.int16)
-    for i in range(samples):
-        # Descending frequency over time
-        t = i / sample_rate
-        freq = frequency_start - (frequency_start - frequency_end) * (t / duration)
-        # Generate sine wave with fade out
-        amplitude = 32767 * (1 - t / duration)
-        sound_array[i] = int(amplitude * np.sin(2 * np.pi * freq * t))
-    
-    sound = pygame.mixer.Sound(buffer=sound_array.tobytes())
-    return sound
+
+    if _NUMPY_AVAILABLE:
+        # Fast path: use numpy
+        t_arr = np.arange(samples) / sample_rate
+        freq_arr = frequency_start - (frequency_start - frequency_end) * (t_arr / duration)
+        amplitude_arr = 32767 * (1 - t_arr / duration)
+        sound_array = (amplitude_arr * np.sin(2 * np.pi * freq_arr * t_arr)).astype(np.int16)
+        raw = sound_array.tobytes()
+    else:
+        # Pure-Python fallback for iOS (no numpy)
+        import struct
+        raw_samples = []
+        for i in range(samples):
+            t = i / sample_rate
+            freq = frequency_start - (frequency_start - frequency_end) * (t / duration)
+            amplitude = 32767 * (1 - t / duration)
+            value = int(amplitude * math.sin(2 * math.pi * freq * t))
+            # clamp to int16 range
+            value = max(-32768, min(32767, value))
+            raw_samples.append(value)
+        raw = struct.pack(f"<{samples}h", *raw_samples)
+
+    return pygame.mixer.Sound(buffer=raw)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
