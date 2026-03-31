@@ -329,13 +329,11 @@ uv pip install briefcase
 
 ### Step 4 — Check pyproject.toml iOS section
 
-Make sure your `pyproject.toml` has this iOS section (it already does if you cloned the repo):
+The `pyproject.toml` iOS section is already correct (kivy is pre-bundled in the BeeWare support package — no extra requires needed):
 
 ```toml
 [tool.briefcase.app.geometrydash.iOS]
-requires = [
-    "kivy",
-]
+requires = []
 minimum_os_version = "16.0"
 ```
 

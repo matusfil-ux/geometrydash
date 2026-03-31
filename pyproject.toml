@@ -44,7 +44,7 @@ requires = [
 ]
 
 [tool.briefcase.app.geometrydash.iOS]
-requires = [
-    "kivy==2.3.1",
-]
+# kivy is pre-bundled in the BeeWare support package downloaded from amazonaws
+# no extra requires needed
+requires = []
 minimum_os_version = "16.0"
